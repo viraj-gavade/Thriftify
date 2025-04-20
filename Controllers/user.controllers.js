@@ -1,0 +1,165 @@
+const uploadFile = require('../utils/cloudinary') // Utility to handle file uploads to Cloudinary
+const User = require('../Schemas/user.schemas') // User model for database operations
+const bcryptjs = require('bcrypt') // Library for hashing passwords
+const jwt = require('jsonwebtoken') // Library for generating JWT tokens
+const asyncHandler = require('../utils/asynchandler') // Middleware for handling async errors in Express
+const CustomApiError = require('../utils/apiErrors') // Custom error handling class
+const ApiResponse = require('../utils/apiResponse') // Custom error handling class
+
+const generateAccessTokenAndRefreshToken = async (userId) => {
+    try {
+        // Fetch user from database using userId
+        const user = await User.findById(userId)
+
+        // Generate Access and Refresh tokens using methods defined in the User model
+        const accessToken = await user.createAccestoken()
+        const refreshToken = await user.createRefreshtoken()
+
+        // Store the generated refresh token in the user's record
+        user.refreshToken = refreshToken
+        await user.save({ validateBeforeSave: false })
+
+        // Return both tokens for client-side usage
+        return { accessToken, refreshToken }
+    } catch (error) {
+        // Log the error and throw a custom API error if token generation fails
+        console.log("Access token Error:-", error)
+        throw new CustomApiError(500, 'Something went wrong while generating the access and refresh token!')
+    }
+}
+
+
+const registerUser = asyncHandler(async (req, res) => {
+    // Destructure request body to get the user input
+    const { username, email, fullname, password, confirm_password } = req.body
+
+    // Check for empty fields and throw a custom error if any field is missing
+    if ([username, email, fullname, password, confirm_password].some((field) =>
+        field?.trim() === ''
+    )) {
+        throw new CustomApiError(400, 'All fields must be filled!')
+    }
+
+    // Check if a user with the same username or email already exists in the database
+    const exstinguser = await User.findOne({
+        $or: [{ username }, { email }]
+    })
+    if (exstinguser) {
+        throw new CustomApiError(409, 'User already exists')
+    }
+
+    // Check if the profilepic file was uploaded, and throw an error if not
+    const profilepicLocalpath = req.files?.profilepic[0]?.path
+    
+    if (profilepicLocalpath === undefined) {
+        throw new CustomApiError(404, 'Avatar must be uploaded!')
+    }
+
+    // Upload avatar and cover image to Cloudinary
+    const profilepic = await uploadFile(profilepicLocalpath)
+    
+
+    // Validate if avatar upload was successful
+    if (!profilepic) {
+        throw new CustomApiError(400, 'Avatar file is required')
+    }
+
+    // Validate password match
+    if (password !== confirm_password) {
+        throw new CustomApiError(400, 'Passwords do not match')
+    }
+
+    // Create new user record in the database
+    const user = await User.create({
+        profilepic: profilepic.url,
+        fullname,
+        email,
+        username: username.toLowerCase(),
+        password: confirm_password
+    })
+
+    // Fetch the created user without sensitive fields like password and refreshToken
+    const createdUser = await User.findById(user._id).select(
+        '-password -refreshToken'
+    )
+
+    // Throw an error if user creation fails
+    if (!createdUser) {
+        throw new CustomApiError(500, 'Server was unable to create the user please try again later!')
+    }
+
+    // Redirect the user to the signup confirmation page
+    return res.status(201).json({
+        status: 'success',
+        message: 'User created successfully',
+        user: createdUser})
+})
+
+
+const loginUser = asyncHandler(async (req, res) => {
+    console.log(req.body)
+    // Destructure request body to get email, password, and username
+    const { email, password, username } = req.body
+    
+
+    // Check if email and password are provided
+    if (!email || !password) {
+        throw new CustomApiError(400, 'Please provide all the required fields')
+    }
+
+    // Find the user by email or username
+    const user = await User.findOne({
+        $or: [{ email }, { username }]
+    })
+
+    // Throw an error if user is not found
+    if (!user) {
+        throw new CustomApiError(404, 'User not found!')
+    }
+
+    // Check if the provided password matches the stored password
+    const ValidPassword = await user.isPasswordCorrect(password)
+    if (!ValidPassword) {
+        throw new CustomApiError(401, 'Invalid user credentials!')
+    }
+
+    // Generate access and refresh tokens for the logged-in user
+    const { accessToken, refreshToken } = await generateAccessTokenAndRefreshToken(user._id)
+
+    // Fetch the logged-in user without sensitive fields like password and refreshToken
+    const loggedInUser = await User.findById(user._id).select('-password -refreshToken')
+
+    // Cookie options for secure and HTTP-only cookies
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    // Send the generated tokens in cookies and redirect to home page
+    return res.status(200).cookie('accessToken', accessToken, options).cookie('refreshToken', refreshToken, options).json({
+        status: 'success',
+        message: 'User Logged In Successfully!',
+        user: loggedInUser
+    })
+})
+
+// Async handler to manage user logout functionality
+const logoutUser = asyncHandler(async (req, res) => {
+    // Cookie options to clear the cookies securely
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    // Clear access and refresh tokens cookies and return a response
+    return res.status(200).clearCookie('accessToken', options).clearCookie('refreshToken', options).json(
+        new ApiResponse(200, 'User Logged Out Successfully!')
+    )
+})
+
+
+module.exports = {
+    registerUser,
+    loginUser,
+    logoutUser
+}

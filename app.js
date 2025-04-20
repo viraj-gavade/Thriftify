@@ -1,39 +1,41 @@
 const express = require('express');
-
 const app = express();
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
+// Load env variables (if you're using dotenv)
+// require('dotenv').config(); // Uncomment if needed
 
 const PORT = process.env.PORT || 3000;
 
-const connectdb = require('./DataBase/connect');
+// ⛔️ No need to import body-parser separately, express has built-in support now
+app.use(express.json()); // 👈 Handles application/json
+app.use(express.urlencoded({ extended: true })); // 👈 Handles form-urlencoded
+app.use(cookieParser()); // 🍪 Parses cookies
+app.use(cors()); // 🌐 Allows CORS
 
+const connectdb = require('./DataBase/connect');
 const UserRouter = require('./Routes/user.routers');
 
-app.use(express.json());
-
-app.use(express.urlencoded({ extended: true }));
-// The "/api/notes" endpoint responds with all notes from the database
-
-
+// Base route
 app.get('/', (req, res) => {
     res.status(200).json({ message: 'Server is running' });
 });
 
+// API routes
 app.use('/api/v1/user', UserRouter);
 
-
-
+// DB connect + start server
 const ConnectDB = async () => {
     try {
-      await connectdb(); // Connect to the database
-
-      app.listen(PORT, () => {
-        console.log(`Server is listening on port: ${PORT}`); // Log when the server starts
-      });
+        await connectdb();
+        app.listen(PORT, () => {
+            console.log(`🚀 Server is running on port ${PORT}`);
+        });
     } catch (error) {
-      console.error('Something Went Wrong!!', error); // Log any connection errors
-      process.exit(1); // Exit process if connection fails
+        console.error('❌ DB connection error:', error);
+        process.exit(1);
     }
-  };
+};
 
-ConnectDB(); // Call the function to connect to the database and start the server
+ConnectDB();
