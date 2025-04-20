@@ -5,6 +5,7 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
+const connectdb = require('./DataBase/connect');
 
 const UserRouter = require('./Routes/user.routers');
 
@@ -20,6 +21,19 @@ app.get('/', (req, res) => {
 
 app.use('/api/v1/user', UserRouter);
 
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-}   );
+
+
+const ConnectDB = async () => {
+    try {
+      await connectdb(); // Connect to the database
+
+      app.listen(PORT, () => {
+        console.log(`Server is listening on port: ${PORT}`); // Log when the server starts
+      });
+    } catch (error) {
+      console.error('Something Went Wrong!!', error); // Log any connection errors
+      process.exit(1); // Exit process if connection fails
+    }
+  };
+
+ConnectDB(); // Call the function to connect to the database and start the server
