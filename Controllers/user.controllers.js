@@ -103,7 +103,7 @@ const loginUser = asyncHandler(async (req, res) => {
     
 
     // Check if email and password are provided
-    if (!email || !password) {
+    if ((!email ||!username) && !password) {
         throw new CustomApiError(400, 'Please provide all the required fields')
     }
 
@@ -157,9 +157,27 @@ const logoutUser = asyncHandler(async (req, res) => {
     )
 })
 
+const getUser = asyncHandler(async (req, res) => {
+    // Fetch the user ID from the request parameters
+    const { id } = req.params
+    // Fetch the user by ID from the database
+    const user = await User.findById(id).select('-password -refreshToken')
+    // Throw an error if user is not found
+    if (!user) {
+        throw new CustomApiError(404, 'User not found!')
+    }
+    // Return the user details in the response
+    return res.status(200).json(user)
+    })
+
+
+const updateUser = asyncHandler(async (req, res) => {
+    
+})
 
 module.exports = {
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    getUser
 }

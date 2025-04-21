@@ -2,7 +2,7 @@ const express = require('express');
 
 const UserRouter = express.Router();
 const upload = require('../Middlewares/multer.middleware'); // Import middleware for file uploads
-const { registerUser, loginUser,logoutUser } = require('../Controllers/user.controllers'); // Import user controller functions
+const { registerUser, loginUser,logoutUser,getUser } = require('../Controllers/user.controllers'); // Import user controller functions
 
 UserRouter.route('/').get((req, res) => {
     res.status(200).json({ message: 'User router path working' });
@@ -26,7 +26,9 @@ UserRouter.route('/signin')
     .post(loginUser);
 
 // Logout route: handles user logout
-UserRouter.route('/logout').get(logoutUser);
+UserRouter.route('/signout').get(logoutUser);
+
+UserRouter.route('/:id').get(getUser);
 
 
 module.exports = UserRouter;
