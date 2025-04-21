@@ -171,13 +171,136 @@ const getUser = asyncHandler(async (req, res) => {
     })
 
 
-const updateUser = asyncHandler(async (req, res) => {
+const UpdateDetails = asyncHandler(async (req, res) => {
+    if(!req.user){
+        throw new CustomApiError(401, 'Unauthorized access!')
+    }
+    const { id } = req.user
+
+    const Finduser = await User.findById(id).select('-password -refreshToken')
+
+    // console.log(id)
+    if (!Finduser) {
+        throw new CustomApiError(404, 'User not found!')
+    }
+    const { fullname, username, email } = req.body
+    const checkUsername = await User.find({ username })
+    const checkEmail = await User.find({ email })
+    if (checkUsername.length > 0) {
+        throw new CustomApiError(409, 'Username already taken!')
+    }
+    if (checkEmail.length > 0) {
+        throw new CustomApiError(409, 'Email already taken!')
+        }
+
+
+    // Update user details in the database
+    const updatedUser = await User.findByIdAndUpdate(id, { fullname, username, email }, { new: true, runValidators: true }).select('-password -refreshToken')
+    // Throw an error if user update fails
+    if (!updatedUser) {
+        throw new CustomApiError(500, 'Server was unable to update the user please try again later!')
+        }
+    // Return the updated user details in the response
+    return res.status(200).json({
+        status: 'success',
+        message: 'User updated successfully',
+        user: updatedUser
+        })
+    }
+ 
+   
+)
+
+const UpdateProfilePic = asyncHandler(async (req, res) => {
+    if(!req.user){
+        throw new CustomApiError(401, 'Unauthorized access!')
+    }
+    const { id } = req.user 
+    const Finduser = await User.findById(id).select('-password -refreshToken')
+    if (!Finduser) {
+        throw new CustomApiError(404, 'User not found!')
+    }
+       // Check if the profilepic file was uploaded, and throw an error if not
+       const profilepicLocalpath = req.files?.profilepic[0]?.path
     
+       if (profilepicLocalpath === undefined) {
+           throw new CustomApiError(404, 'profilepic must be uploaded!')
+       }
+   
+       // Upload avatar and cover image to Cloudinary
+       const profilepic = await uploadFile(profilepicLocalpath)
+       
+   
+       // Validate if avatar upload was successful
+       if (!profilepic) {
+           throw new CustomApiError(400, 'Avatar file is required')
+       }
+
+    // Update user profile picture in the database
+    const updatedUser = await User.findByIdAndUpdate(id, { profilepic: profilepic.url }, { new: true, runValidators: true }).select('-password -refreshToken')
+    // Throw an error if user update fails
+    if (!updatedUser) {
+        throw new CustomApiError(500, 'Server was unable to update the user please try again later!')
+    }
+    // Return the updated user details in the response
+    return res.status(200).json({
+        status: 'success',
+        message: 'User updated successfully',
+        user: updatedUser
+        })
+
+   
+})
+
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+    try {
+        // Check if the user is authenticated
+        if (!req.user) {
+            throw new CustomApiError(401, 'Unauthorized access!')
+            }
+        // Destructure new and old password from request body
+        const { oldPassword, newPassword, confirm_password } = req.body
+
+        // Find the user using the logged-in user's ID
+        const user = await User.findById(req.user._id).select('-password -refreshToken')
+
+        // Check if the provided old password matches the stored password
+        const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+        if (!isPasswordCorrect) {
+            throw new CustomApiError(401, 'The old password you have entered is not correct!')
+        }
+
+        // Validate if new password matches the confirm password
+        if (newPassword !== confirm_password) {
+            throw new CustomApiError(401, 'The new password and confirm password you have entered are not the same!')
+        }
+
+        // Update the user's password
+        user.password = newPassword
+
+        // Save the updated user information
+        await user.save({ validateBeforeSave: true })
+
+        // Redirect the user to their channel page after successful password change
+        return res.status(200).json({
+            status: 'success',
+            message: 'Password changed successfully!',
+            user: user
+        })
+
+    } catch (error) {
+        // Log error and throw custom error for any issues during password change
+        console.log(error)
+        throw new CustomApiError(500, 'Something went wrong while changing the password please try again later!')
+    }
 })
 
 module.exports = {
     registerUser,
     loginUser,
     logoutUser,
-    getUser
+    getUser,
+    UpdateDetails,
+    UpdateProfilePic,
+    changeCurrentPassword
 }
