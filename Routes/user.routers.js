@@ -29,7 +29,7 @@ UserRouter.route('/signin')
 // Logout route: handles user logout
 UserRouter.route('/signout').get(logoutUser);
 
-UserRouter.route('/:id').get(getUser);
+UserRouter.route('/profile/:id').get(getUser);
 
 UserRouter.route('/update-details').patch(VerifyJwt,UpdateDetails);
 

@@ -25,7 +25,7 @@ app.get('/', (req, res) => {
 
 // API routes
 app.use('/api/v1/user', UserRouter);
-app.use('/api/v1/listing', ListingRouter); // Assuming you have a listing router
+app.use('/api/v1/', ListingRouter); // Assuming you have a listing router
 
 // DB connect + start server
 const ConnectDB = async () => {

@@ -3,8 +3,9 @@ const path = require('path');
 const uploadFile = require('../utils/cloudinary');
 const Listing = require('../Schemas/listings.schemas');
 const User = require('../Schemas/user.schemas');
+const asyncHandler = require('../utils/asynchandler');
 
-const CreateListing = async (req, res) => {
+const CreateListing = asyncHandler( async (req, res) => {
     try {
         const { title, description, price, category,location } = req.body;
         const userId = req.user._id;
@@ -45,6 +46,142 @@ const CreateListing = async (req, res) => {
         console.error(error);
         return res.status(500).json({ message: 'Server error' });
     }
-};
+});
 
-module.exports = { CreateListing };
+const GetAllListings = asyncHandler(async (req, res) => {
+  try {
+    const sortBy = req.query.sortBy || 'createdAt';
+    const category = req.query.category;
+    const location = req.query.location;
+    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+
+    // Build query object dynamically
+    const query = {};
+    if (category) query.category = category;
+    if (location) query.location = location;
+
+    // Find and sort
+    const listings = await Listing.find(query)
+      .populate('postedBy', 'fullname email')
+      .sort({ [sortBy]: sortOrder });
+
+    if (!listings.length) {
+      return res.status(404).json({ message: 'No listings found' });
+    }
+
+    res.status(200).json(listings);
+  } catch (error) {
+    console.error('Error fetching listings:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
+const GetSingleListing =asyncHandler( async (req, res) => {          
+    try {
+        const { id } = req.params;
+        const listing = await Listing.findById(id).populate('postedBy', 'name email');
+        if (!listing) {
+            return res.status(404).json({ message: 'Listing not found' });
+        }
+        return res.status(200).json(listing);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+})
+
+const UpdateListing = asyncHandler( async (req, res) => {
+    try {
+        // Check if the user is the owner of the listing
+        const listing = await Listing.findById(req.params.id);
+        if (!listing) {
+            return res.status(404).json({ message: 'Listing not found' });
+        }
+        if (listing.postedBy.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'You are not authorized to update this listing' });
+        }
+
+        const { id } = req.params;
+        const { title, description, price, category, location } = req.body;
+
+        // Find the listing by ID and update it
+        const updatedListing = await Listing.findByIdAndUpdate(
+            id,
+            { title, description, price, category, location },
+            { new: true }
+        );
+
+        if (!updatedListing) {
+            return res.status(404).json({ message: 'Listing not found' });
+        }
+
+        return res.status(200).json(updatedListing);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+})
+
+const DeleteListing = asyncHandler( async (req, res) => {   
+    try {
+        // Check if the user is the owner of the listing
+        const listing = await Listing.findById(req.params.id);
+        if (!listing) {
+            return res.status(404).json({ message: 'Listing not found' });
+        }
+        if (listing.postedBy.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'You are not authorized to delete this listing' });
+        }
+
+        // Delete the listing
+        await Listing.findByIdAndDelete(req.params.id);
+
+        // Remove the listing from the user's listings array
+        await User.findByIdAndUpdate(req.user._id, { $pull: { listings: req.params.id } });
+
+        return res.status(200).json({ message: 'Listing deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+}
+)
+
+const GetUserListings = asyncHandler( async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const listings = await Listing.find({ postedBy: userId }).populate('postedBy', 'name email').sort({ createdAt: -1 });
+        return res.status(200).json(listings);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+})
+const GetUserListingById = asyncHandler( async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { id } = req.params;
+        const listing = await Listing.findOne({ _id: id, postedBy: userId }).populate('postedBy', 'name email');
+        if (!listing) {
+            return res.status(404).json({ message: 'Listing not found' });
+        }
+        return res.status(200).json(listing);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+})
+
+
+
+
+module.exports = { CreateListing,
+    GetAllListings, 
+    GetSingleListing, 
+    UpdateListing, 
+    DeleteListing, 
+    GetUserListings,
+    GetUserListingById
+ };
