@@ -33,6 +33,12 @@ const UserSchema = new mongoose.Schema({
             ref: 'Listing',
         },
     ],
+    listings: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Listing',
+        },
+    ],
     createdAt: {
         type: Date,
         default: Date.now,
