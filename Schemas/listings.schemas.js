@@ -14,7 +14,7 @@ const ListingSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-    catgory: {
+    category: {
         type: String,
         enum: ['electronics', 'furniture', 'clothing', 'books', 'others'],
         required: true,
@@ -25,7 +25,7 @@ const ListingSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
     },
-    isSolde: {
+    isSold: {
         type: Boolean,
         default: false,
     },
