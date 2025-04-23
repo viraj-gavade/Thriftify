@@ -22,8 +22,9 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 const connectdb = require('./DataBase/connect');
-const UserRouter = require('./Routes/user.routers');
+const UserRouter = require('./Routes/user.router');
 const ListingRouter = require('./Routes/listing.router'); // Assuming you have a listing router
+const OrderRouter = require('./Routes/orders.router'); // Assuming you have a listing router
 
 // Base route
 app.get('/', (req, res) => {
@@ -33,6 +34,7 @@ app.get('/', (req, res) => {
 // API routes
 app.use('/api/v1/user', UserRouter);
 app.use('/api/v1/', ListingRouter); // Assuming you have a listing router
+app.use('/api/v1/', OrderRouter); // Assuming you have a listing router
 
 // DB connect + start server
 const ConnectDB = async () => {
