@@ -4,7 +4,7 @@ const ApiResponse = require('../utils/apiResponse') // Custom error handling cla
 const Order = require('../Schemas/order.schemas') // Order model for database operations
 const Listing = require('../Schemas/listings.schemas') // Listing model for database operations
 const asyncHandler = require('../utils/asynchandler') // Middleware for handling async errors in Express
-
+const User = require('../Schemas/user.schemas') // User model for database operations
 
 
 const CreateOrder = asyncHandler( async (req, res) => {   
@@ -68,10 +68,31 @@ const GetUserOrders = asyncHandler(async (req, res) => {
 }
 )
 
+const DeleteUserOrder = asyncHandler(async (req, res) => {
+    const userId = req.user._id; // Extracting user ID from request object
+    if (!userId) {
+        return res.status(401).json(new ApiResponse('User not authenticated')); // Sending error response if user is not authenticated
+    }
+    const {orderId} = req.body; // Extracting order ID from request parameters
+    const order = await Order.findByIdAndDelete(orderId); // Deleting order from database
+    if (!order) {
+        return res.status(404).json(new ApiResponse('Order not found')); // Sending error response if order not found
+    }
+    // Updating the listing to mark it as unsold
+    await Listing.findByIdAndUpdate(order.listing, { isSold: false }, { new: true });
+    // Removing the order from the user's orders array
+    await User.findByIdAndUpdate(order.buyer, { $pull: { orders: orderId } }, { new: true });
+    await User.findByIdAndUpdate(order.seller, { $pull: { orders: orderId } }, { new: true });
+    return res.status(200).json(new ApiResponse('Order deleted successfully')); // Sending success response
+
+}
+)
+
 
 
 module.exports = {
     CreateOrder,
     GetOrder,
-    GetUserOrders
+    GetUserOrders,
+    DeleteUserOrder
 }
