@@ -174,6 +174,66 @@ const GetUserListingById = asyncHandler( async (req, res) => {
     }
 })
 
+const AddToBookmarks = asyncHandler( async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { listingId } = req.body;
+
+        // Check if the listing exists
+        const listing = await Listing.findById(listingId);
+        if (!listing) {
+            return res.status(404).json({ message: 'Listing not found' });
+        }
+
+        // Add the listing to the user's bookmarks
+        await User.findByIdAndUpdate(userId, { $addToSet: { Bookmarks: listingId } });
+
+        return res.status(200).json({ message: 'Listing added to bookmarks' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+})
+const RemoveFromBookmarks = asyncHandler( async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { listingId } = req.body;
+
+        // Check if the listing exists
+        const listing = await Listing.findById(listingId);
+        if (!listing) {
+            return res.status(404).json({ message: 'Listing not found' });
+        }
+
+        // Remove the listing from the user's bookmarks
+        await User.findByIdAndUpdate(userId, { $pull: { Bookmarks: listingId } });
+
+        return res.status(200).json({ message: 'Listing removed from bookmarks' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+})  
+
+const GetUserBookmarks = asyncHandler( async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId).populate('Bookmarks');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }           
+        return res.status(200).json(user.Bookmarks);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+}
+)
+
+
+
+
+
 
 
 
@@ -183,5 +243,8 @@ module.exports = { CreateListing,
     UpdateListing, 
     DeleteListing, 
     GetUserListings,
-    GetUserListingById
+    GetUserListingById,
+    AddToBookmarks,
+    RemoveFromBookmarks,
+    GetUserBookmarks
  };
