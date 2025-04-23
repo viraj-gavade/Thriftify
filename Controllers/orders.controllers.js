@@ -37,6 +37,8 @@ const CreateOrder = asyncHandler( async (req, res) => {
         // Updating the listing with the order ID
         await Listing.findByIdAndUpdate(listingId,{isSold: true, order: order._id}, { new: true });
         // Updating the order with the listing ID
+        await User.findByIdAndUpdate(userId, { $addToSet: { orders: order._id } }, { new: true });
+        await User.findByIdAndUpdate(listing.postedBy, { $addToSet: { orders: order._id } }, { new: true });
         return res.status(201).json(new ApiResponse('Order created successfully', order)); // Sending success response with order details
     } catch (error) {
         console.error(error); // Logging error to console
@@ -45,6 +47,31 @@ const CreateOrder = asyncHandler( async (req, res) => {
 
          }); 
 
+const GetOrder = asyncHandler(async (req, res) => { 
+    const orderId = req.params.id; // Extracting order ID from request parameters   
+    const order = await Order.findById(orderId).populate('listing').populate('buyer').populate('seller'); // Fetching order details from database
+    if (!order) {
+        return res.status(404).json(new ApiResponse('Order not found')); // Sending error response if order not found
+    }
+    return res.status(200).json(new ApiResponse('Order fetched successfully', order)); // Sending success response with order details
+}
+    
+    )
+
+const GetUserOrders = asyncHandler(async (req, res) => {
+    const userId = req.user._id; // Extracting user ID from request object
+    const orders = await Order.find({ buyer: userId }).populate('listing'); // Fetching orders for the user
+    if (!orders) {
+        return res.status(404).json(new ApiResponse('No orders found')); // Sending error response if no orders found
+    }
+    return res.status(200).json(new ApiResponse('Orders fetched successfully', orders)); // Sending success response with orders
+}
+)
+
+
+
 module.exports = {
-    CreateOrder
+    CreateOrder,
+    GetOrder,
+    GetUserOrders
 }
