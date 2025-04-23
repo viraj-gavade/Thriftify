@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 
 // Load env variables (if you're using dotenv)
 // require('dotenv').config(); // Uncomment if needed
@@ -13,6 +14,12 @@ app.use(express.json()); // 👈 Handles application/json
 app.use(express.urlencoded({ extended: true })); // 👈 Handles form-urlencoded
 app.use(cookieParser()); // 🍪 Parses cookies
 app.use(cors()); // 🌐 Allows CORS
+
+// Set view engine
+app.set('view engine', 'ejs');
+
+// Set views directory (optional if using default /views)
+app.set('views', path.join(__dirname, 'views'));
 
 const connectdb = require('./DataBase/connect');
 const UserRouter = require('./Routes/user.routers');

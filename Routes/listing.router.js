@@ -24,5 +24,5 @@ Listingrouter.get('/user/listings', VerifyJwt, GetUserListings); // Get all list
 Listingrouter.get('/user/listings/:id', VerifyJwt, GetUserListingById); // Get a single listing by ID for the authenticated user
 Listingrouter.post('/user/bookmarks', VerifyJwt, AddToBookmarks); // Add a listing to bookmarks
 Listingrouter.delete('/user/bookmarks', VerifyJwt, RemoveFromBookmarks); // Remove a listing from bookmarks
-Listingrouter.get('/user/bookmarks', VerifyJwt, GetUserBookmarks); // Get all bookmarks for the authenticated user
+
 module.exports = Listingrouter;
