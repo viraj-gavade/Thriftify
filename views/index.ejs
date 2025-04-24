@@ -1,108 +1,11 @@
-<!-- views/index.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marketplace Listing Management</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .card {
-            margin-bottom: 20px;
-        }
-        .listing-image {
-            height: 200px;
-            object-fit: cover;
-        }
-        .filter-section {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-        }
-        .bookmarked {
-            color: gold;
-        }
-    </style>
+    <title>Document</title>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/">Marketplace</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/listings/create">Create Listing</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/listings/my-listings">My Listings</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/bookmarks">My Bookmarks</a>
-                    </li>
-                </ul>
-                <div class="navbar-nav">
-                    <% if (user) { %>
-                        <span class="nav-link">Welcome, <%= user.fullname %></span>
-                        <a class="nav-link" href="/logout">Logout</a>
-                    <% } else { %>
-                        <a class="nav-link" href="/login">Login</a>
-                        <a class="nav-link" href="/register">Register</a>
-                    <% } %>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container mt-4">
-        <% if (typeof message !== 'undefined' && message) { %>
-            <div class="alert alert-<%= messageType || 'info' %> alert-dismissible fade show">
-                <%= message %>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <% } %>
-
-        <div class="content">
-            <%- body %>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // General JavaScript functions
-        function confirmDelete(id) {
-            if (confirm('Are you sure you want to delete this listing?')) {
-                document.getElementById('delete-form-' + id).submit();
-            }
-        }
-
-        function toggleBookmark(listingId, isBookmarked) {
-            const url = isBookmarked ? '/listings/bookmarks/remove' : '/listings/bookmarks/add';
-            
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ listingId }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message) {
-                    location.reload();
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to update bookmark status');
-            });
-        }
-    </script>
+    <h1>Payemnt Failed!</h1>
 </body>
 </html>

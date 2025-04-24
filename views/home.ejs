@@ -1,82 +1,12 @@
-<%- include('index', { body: `
-    <h1 class="mb-4">Marketplace Listings</h1>
-    
-    <div class="filter-section">
-        <form action="/" method="GET" class="row g-3">
-            <div class="col-md-3">
-                <label for="category" class="form-label">Category</label>
-                <select class="form-select" id="category" name="category">
-                    <option value="">All Categories</option>
-                    <option value="Electronics" ${category === 'Electronics' ? 'selected' : ''}>Electronics</option>
-                    <option value="Clothing" ${category === 'Clothing' ? 'selected' : ''}>Clothing</option>
-                    <option value="Home" ${category === 'Home' ? 'selected' : ''}>Home</option>
-                    <option value="Books" ${category === 'Books' ? 'selected' : ''}>Books</option>
-                    <option value="Other" ${category === 'Other' ? 'selected' : ''}>Other</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label for="location" class="form-label">Location</label>
-                <input type="text" class="form-control" id="location" name="location" value="${location || ''}">
-            </div>
-            <div class="col-md-3">
-                <label for="sortBy" class="form-label">Sort By</label>
-                <select class="form-select" id="sortBy" name="sortBy">
-                    <option value="createdAt" ${sortBy === 'createdAt' ? 'selected' : ''}>Date</option>
-                    <option value="price" ${sortBy === 'price' ? 'selected' : ''}>Price</option>
-                    <option value="title" ${sortBy === 'title' ? 'selected' : ''}>Title</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label for="sortOrder" class="form-label">Order</label>
-                <select class="form-select" id="sortOrder" name="sortOrder">
-                    <option value="desc" ${sortOrder === 'desc' ? 'selected' : ''}>Descending</option>
-                    <option value="asc" ${sortOrder === 'asc' ? 'selected' : ''}>Ascending</option>
-                </select>
-            </div>
-            <div class="col-12 mt-3">
-                <button type="submit" class="btn btn-primary">Apply Filters</button>
-                <a href="/" class="btn btn-secondary">Clear Filters</a>
-            </div>
-        </form>
-    </div>
-    
-    <div class="row">
-        <% if (listings && listings.length > 0) { %>
-            <% listings.forEach(listing => { %>
-                <div class="col-md-4">
-                    <div class="card h-100">
-                        <% if (listing.images && listing.images.length > 0) { %>
-                            <img src="<%= listing.images[0] %>" class="card-img-top listing-image" alt="<%= listing.title %>">
-                        <% } else { %>
-                            <img src="/img/placeholder.jpg" class="card-img-top listing-image" alt="No image">
-                        <% } %>
-                        <div class="card-body">
-                            <h5 class="card-title"><%= listing.title %></h5>
-                            <p class="card-text text-truncate"><%= listing.description %></p>
-                            <p class="card-text"><strong>$<%= listing.price %></strong></p>
-                            <p class="card-text"><small class="text-muted">Category: <%= listing.category %></small></p>
-                            <p class="card-text"><small class="text-muted">Location: <%= listing.location %></small></p>
-                            <p class="card-text"><small class="text-muted">Posted by: <%= listing.postedBy ? listing.postedBy.fullname : 'Unknown' %></small></p>
-                            <a href="/listings/<%= listing._id %>" class="btn btn-primary">View Details</a>
-                            
-                            <% if (user) { %>
-                                <button 
-                                    class="btn btn-outline-warning float-end bookmark-btn" 
-                                    onclick="toggleBookmark('<%= listing._id %>', <%= userBookmarks.includes(listing._id.toString()) %>)">
-                                    <i class="bi <%= userBookmarks.includes(listing._id.toString()) ? 'bi-star-fill bookmarked' : 'bi-star' %>"></i>
-                                </button>
-                            <% } %>
-                        </div>
-                        <div class="card-footer text-muted">
-                            Posted: <%= new Date(listing.createdAt).toLocaleDateString() %>
-                        </div>
-                    </div>
-                </div>
-            <% }); %>
-        <% } else { %>
-            <div class="col-12">
-                <div class="alert alert-info">No listings found.</div>
-            </div>
-        <% } %>
-    </div>
-    ` }) %>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Payemnt Success!</h1>
+</body>
+</html>

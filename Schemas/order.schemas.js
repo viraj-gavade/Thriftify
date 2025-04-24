@@ -33,6 +33,7 @@ const OrderSchema = new mongoose.Schema(
             default: "paypal"
           },
         },
+        paypalOrderId: { type: String }, 
 
         isPaid: { type: Boolean, default: false },
       

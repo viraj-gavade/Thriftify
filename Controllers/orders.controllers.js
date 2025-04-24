@@ -48,7 +48,12 @@ const CreateOrder = asyncHandler(async (req, res) => {
             },
           },
         ],
+        application_context: {
+            return_url: "http://localhost:3000/payment-success", // or your deployed frontend
+            cancel_url: "http://localhost:3000/payment-cancel",  // same here
+          },
       },
+      
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -129,10 +134,10 @@ const CreateOrder = asyncHandler(async (req, res) => {
 
 // Capture the PayPal payment after approval
 const capturePayment = asyncHandler(async (req, res) => {
-    const { id: orderId } = req.params; // Get the order ID from the URL params
-    console.log("Order ID:", orderId); // Log the order ID for debugging
-    if (!orderId) throw new CustomApiError("Missing order ID", 400);
+    const { token } = req.query; // we get ?token=... from PayPal redirect
+    if (!token) throw new CustomApiError("Missing PayPal token in query", 400);
   
+    // Step 1: Get a new access token from PayPal
     const basicAuth = Buffer.from(
       `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
     ).toString("base64");
@@ -149,12 +154,12 @@ const capturePayment = asyncHandler(async (req, res) => {
     );
   
     const accessToken = tokenRes.data.access_token;
-    console.log("Access Token:", accessToken); // Log the access token for debugging
   
-   try {
-    const captureRes = await axios.post(
-        `https://api-m.sandbox.paypal.com/v2/checkout/orders/${orderId}/capture`,
-        {}, // empty body
+    try {
+      // Step 2: Capture the payment using the token
+      const captureRes = await axios.post(
+        `https://api-m.sandbox.paypal.com/v2/checkout/orders/${token}/capture`,
+        {},
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -162,19 +167,41 @@ const capturePayment = asyncHandler(async (req, res) => {
           },
         }
       );
-      
-     console.log("Capture Response:", captureRes.data);
-     // Handle the captured payment response
-     if (captureRes.status === 200) {
-         // You can also update the order status in your DB to "paid" or "completed"
-         return res.status(200).json(new ApiResponse("Payment captured", captureRes.data));
-        } else {
-            throw new CustomApiError("Payment capture failed", 500);
-        }
-    } catch (error) {
-     console.log(error)
-    } // Log the capture response for debugging purposes
-   
+  
+      const captureData = captureRes.data;
+      console.log("✅ Capture Response:", captureData);
+  
+      if (captureRes.status !== 201 && captureData.status !== "COMPLETED") {
+        throw new CustomApiError("Payment not completed", 500);
+      }
+  
+      // Step 3: Find and update your order in DB
+      const updatedOrder = await Order.findOneAndUpdate(
+        { paypalOrderId: token },
+        {
+          paymentInfo: {
+            orderId: token,
+            status: "completed",
+            amount: captureData.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value || "0",
+            currency: captureData.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.currency_code || "USD",
+            method: "paypal",
+          },
+          isPaid: true,
+          orderStatus: "confirmed",
+        },
+        { new: true }
+      );
+  
+      if (!updatedOrder) {
+        throw new CustomApiError("Order not found for the given PayPal token", 404);
+      }
+  
+      return res.status(200).json(new ApiResponse("✅ Payment captured successfully", updatedOrder));
+    } catch (err) {
+    console.log(err);
+      console.error("❌ Capture failed:", err.response?.data || err.message);
+      return res.status(500).json(new ApiResponse("Payment capture failed", null));
+    }
   });
   
   

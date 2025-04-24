@@ -34,7 +34,17 @@ app.get('/', (req, res) => {
 // API routes
 app.use('/api/v1/user', UserRouter);
 app.use('/api/v1/', ListingRouter); // Assuming you have a listing router
-app.use('/api/v1/', OrderRouter); // Assuming you have a listing router
+app.use('/api/v1/', OrderRouter);
+ // Assuming you have a listing router
+app.get('/payment-cancel', (req, res) => {
+    res.status(200).render('index.ejs');
+  });
+  
+  app.get('/payment-success', (req, res) => {
+    res.status(200).render('home.ejs');
+  });
+  
+ // Assuming you have a listing router
 
 // DB connect + start server
 const ConnectDB = async () => {
