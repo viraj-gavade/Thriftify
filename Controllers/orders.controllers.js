@@ -168,9 +168,7 @@ const capturePayment = asyncHandler(async (req, res) => {
         }
       );
   
-      const captureData = captureRes.data;
-      console.log("✅ Capture Response:", captureData);
-  
+      const captureData = captureRes.data;  
       if (captureRes.status !== 201 && captureData.status !== "COMPLETED") {
         throw new CustomApiError("Payment not completed", 500);
       }
@@ -198,7 +196,6 @@ const capturePayment = asyncHandler(async (req, res) => {
   
       return res.status(200).json(new ApiResponse("✅ Payment captured successfully", updatedOrder));
     } catch (err) {
-    console.log(err);
       console.error("❌ Capture failed:", err.response?.data || err.message);
       return res.status(500).json(new ApiResponse("Payment capture failed", null));
     }
