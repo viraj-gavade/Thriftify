@@ -7,45 +7,159 @@ const asyncHandler = require('../utils/asynchandler') // Middleware for handling
 const User = require('../Schemas/user.schemas') // User model for database operations
 
 
-const CreateOrder = asyncHandler( async (req, res) => {   
-    try {   
+const axios = require("axios");
 
-        const userId = req.user._id; // Extracting user ID from request object
-        if (!userId) {
-            throw new CustomApiError('User not authenticated', 401); // Custom error if user is not authenticated
+const CreateOrder = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user._id;
+    if (!userId) throw new CustomApiError("User not authenticated", 401);
+
+    const { listingId, name, address, phone, city, pincode } = req.body;
+    const listing = await Listing.findById(listingId);
+    if (!listing) throw new CustomApiError("Listing not found", 404);
+
+    // 💰 Step 1: Get PayPal access token
+    const basicAuth = Buffer.from(
+      `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+    ).toString("base64");
+
+    const tokenRes = await axios.post(
+      "https://api-m.sandbox.paypal.com/v1/oauth2/token",
+      new URLSearchParams({ grant_type: "client_credentials" }),
+      {
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+    const accessToken = tokenRes.data.access_token;
+
+    // 💰 Step 2: Create PayPal order
+    const orderRes = await axios.post(
+      "https://api-m.sandbox.paypal.com/v2/checkout/orders",
+      {
+        intent: "CAPTURE",
+        purchase_units: [
+          {
+            amount: {
+              currency_code: "USD", // or INR if you’ve enabled it
+              value: listing.price, // Assuming listing has a price field
+            },
+          },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const paypalOrderId = orderRes.data.id;
+
+    // 🧾 Step 3: Store order in your DB
+    const order = await Order.create({
+      listing: listingId,
+      buyer: userId,
+      seller: listing.postedBy,
+      paypalOrderId, // ✅ Save PayPal order ID for future reference
+      shippingInfo: {
+        name,
+        address,
+        phone,
+        city,
+        pincode,
+      },
+    });
+
+    if (!order) throw new CustomApiError("Order creation failed", 500);
+
+    await Listing.findByIdAndUpdate(
+      listingId,
+      { isSold: true, order: order._id },
+      { new: true }
+    );
+
+    await User.findByIdAndUpdate(
+      userId,
+      { $addToSet: { orders: order._id } },
+      { new: true }
+    );
+
+    await User.findByIdAndUpdate(
+      listing.postedBy,
+      { $addToSet: { orders: order._id } },
+      { new: true }
+    );
+
+    return res.status(201).json(
+      new ApiResponse("Order created successfully", {
+        order,
+        paypalOrderId,
+        paypalLink: orderRes.data.links.find((l) => l.rel === "approve")?.href,
+      })
+    );
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(error.statusCode || 500)
+      .json(new ApiResponse(error.message || "Internal Server Error"));
+  }
+});
+
+// Capture the PayPal payment after approval
+const capturePayment = asyncHandler(async (req, res) => {
+    const { id: orderId } = req.params; // Get the order ID from the URL params
+    console.log("Order ID:", orderId); // Log the order ID for debugging
+    if (!orderId) throw new CustomApiError("Missing order ID", 400);
+  
+    const basicAuth = Buffer.from(
+      `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+    ).toString("base64");
+  
+    const tokenRes = await axios.post(
+      "https://api-m.sandbox.paypal.com/v1/oauth2/token",
+      new URLSearchParams({ grant_type: "client_credentials" }),
+      {
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+  
+    const accessToken = tokenRes.data.access_token;
+    console.log("Access Token:", accessToken); // Log the access token for debugging
+  
+   try {
+    const captureRes = await axios.post(
+        `https://api-m.sandbox.paypal.com/v2/checkout/orders/${orderId}/capture`,
+        {}, // empty body
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
         }
-        const { listingId,name , address , phone , city , pincode } = req.body; // Extracting order details from request body
-        const listing = await Listing.findById(listingId);
-        if (!listing) {
-            throw new CustomApiError('Listing not found', 404); // Custom error if listing not found
+      );
+      
+     console.log("Capture Response:", captureRes.data);
+     // Handle the captured payment response
+     if (captureRes.status === 200) {
+         // You can also update the order status in your DB to "paid" or "completed"
+         return res.status(200).json(new ApiResponse("Payment captured", captureRes.data));
+        } else {
+            throw new CustomApiError("Payment capture failed", 500);
         }
-        const order = await Order.create({ 
-            listing: listingId,
-            buyer: userId,
-            seller: listing.postedBy,
-            shippingInfo: {
-                name,
-                address,
-                phone,
-                city,
-                pincode
-            }
-        });
-        if (!order) {
-            throw new CustomApiError('Order creation failed', 500); // Custom error if order creation fails
-        }
-        // Updating the listing with the order ID
-        await Listing.findByIdAndUpdate(listingId,{isSold: true, order: order._id}, { new: true });
-        // Updating the order with the listing ID
-        await User.findByIdAndUpdate(userId, { $addToSet: { orders: order._id } }, { new: true });
-        await User.findByIdAndUpdate(listing.postedBy, { $addToSet: { orders: order._id } }, { new: true });
-        return res.status(201).json(new ApiResponse('Order created successfully', order)); // Sending success response with order details
     } catch (error) {
-        console.error(error); // Logging error to console
-        return res.status(error.statusCode || 500).json(new ApiResponse(error.message || 'Internal Server Error')); // Sending error response
-    }
-
-         }); 
+     console.log(error)
+    } // Log the capture response for debugging purposes
+   
+  });
+  
+  
 
 const GetOrder = asyncHandler(async (req, res) => { 
     const orderId = req.params.id; // Extracting order ID from request parameters   
@@ -94,5 +208,6 @@ module.exports = {
     CreateOrder,
     GetOrder,
     GetUserOrders,
-    DeleteUserOrder
+    DeleteUserOrder,
+    capturePayment
 }
