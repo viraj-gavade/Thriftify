@@ -93,6 +93,24 @@ const CreateOrder = asyncHandler(async (req, res) => {
       { $addToSet: { orders: order._id } },
       { new: true }
     );
+    
+    await Order.findByIdAndUpdate(
+        order._id,
+        {
+          paymentInfo: {
+            orderId: paypalOrderId,
+            status: "pending",
+            amount: listing.price,
+            currency: "USD",
+            method: "paypal",
+          },
+          isPaid: true,
+          orderStatus: "placed"
+        },
+        { new: true }
+      );
+      
+
 
     return res.status(201).json(
       new ApiResponse("Order created successfully", {

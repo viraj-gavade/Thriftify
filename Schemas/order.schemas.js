@@ -21,6 +21,20 @@ const OrderSchema = new mongoose.Schema(
           city: String,
           pincode: String
         },
+
+        paymentInfo: {
+          id: String,
+          status: String,
+          amount: Number,
+          currency: String,
+          method: {
+            type: String,
+            enum: ["paypal", "razorpay"],
+            default: "paypal"
+          },
+        },
+
+        isPaid: { type: Boolean, default: false },
       
         placedAt: { type: Date, default: Date.now }
       }
