@@ -20,9 +20,9 @@ UserRouter.route('/signup')
     );
 
 // Signin route: renders the signin page and handles user login
-UserRouter.route('/signin')
+UserRouter.route('/login')
     .get((req, res) => {
-        res.render('SignIn');
+        res.render('login');
     })
     .post(loginUser);
 
