@@ -1,4 +1,4 @@
-const Chat = require('../models/chat.model');
+const Chat = require('../Schemas/chat.schemas');
 
 const getChatBetweenUsers = async (req, res) => {
   const { user1, user2 } = req.params;
@@ -14,7 +14,6 @@ const getChatBetweenUsers = async (req, res) => {
 };
 
 
-moudule.exports = {
+module.exports = {
     getChatBetweenUsers
     };
-    
