@@ -10,7 +10,7 @@ UserRouter.route('/').get((req, res) => {
 });
 UserRouter.route('/signup')
     .get((req, res) => {
-        res.render('SignUp');
+        res.render('signup');
     })
     .post( 
         upload.fields([
