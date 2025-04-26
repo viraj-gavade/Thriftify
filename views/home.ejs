@@ -1,12 +1,153 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8">
+  <title>Listings</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1100px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .filters {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    input, select, button {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .listing {
+      background: white;
+      margin-bottom: 20px;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      transition: all 0.3s;
+    }
+    .listing:hover {
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      transform: translateY(-3px);
+    }
+    .listing img {
+      width: 200px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .listing-details {
+      flex: 1;
+    }
+    .listing-details h2 {
+      margin-top: 0;
+    }
+    .price {
+      font-size: 1.2rem;
+      color: green;
+      margin: 8px 0;
+    }
+    .posted-by {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 10px;
+    }
+    #noData {
+      text-align: center;
+      margin-top: 50px;
+      font-size: 1.2rem;
+      color: #999;
+    }
+  </style>
 </head>
 <body>
-    <h1>Payemnt Success!</h1>
+
+  <div class="container">
+    <h1>All Listings</h1>
+
+    <div class="filters">
+      <input type="text" id="category" placeholder="Filter by Category (e.g., electronics)">
+      <input type="text" id="location" placeholder="Filter by Location (e.g., Mumbai)">
+      <select id="sortOrder">
+        <option value="desc" selected>Newest First</option>
+        <option value="asc">Oldest First</option>
+      </select>
+      <button id="filterBtn">Apply Filters</button>
+    </div>
+
+    <div id="listings">
+      <!-- Listings will load here -->
+    </div>
+  </div>
+
+  <script>
+    async function fetchListings() {
+      const category = document.getElementById('category').value;
+      const location = document.getElementById('location').value;
+      const sortOrder = document.getElementById('sortOrder').value;
+
+      let query = `?sortOrder=${sortOrder}`;
+      if (category) query += `&category=${encodeURIComponent(category)}`;
+      if (location) query += `&location=${encodeURIComponent(location)}`;
+
+      try {
+        const res = await fetch(`/api/v1/listing/sorted${query}`);
+        const data = await res.json();
+
+        const listingsDiv = document.getElementById('listings');
+        listingsDiv.innerHTML = '';
+
+        if (!Array.isArray(data) || !data.length === 0) {
+          // If no listings found, show a message
+          listingsDiv.innerHTML = '<p id="noData">No listings found.</p>';
+          return;
+        }
+
+        data.forEach(listing => {
+          const div = document.createElement('div');
+          div.className = 'listing';
+          div.innerHTML = `
+            <img src="${listing.images && listing.images.length ? listing.images[0] : 'https://via.placeholder.com/200'}" alt="Listing Image">
+            <div class="listing-details">
+              <h2>${listing.title || 'No Title'}</h2>
+              <p>${listing.description || 'No Description'}</p>
+              <div class="price">₹${listing.price || 'N/A'}</div>
+              <p><strong>Category:</strong> ${listing.category || 'N/A'}</p>
+              <p><strong>Location:</strong> ${listing.location || 'N/A'}</p>
+              <div class="posted-by">
+                Posted by: ${listing.postedBy?.fullname || 'Unknown'} (${listing.postedBy?.email || 'No Email'})
+              </div>
+            </div>
+          `;
+          listingsDiv.appendChild(div);
+        });
+      } catch (error) {
+        console.log( 'Error fetching listings:', error);
+        
+        console.error('Error fetching listings:', error);
+        document.getElementById('listings').innerHTML = '<p id="noData">Something went wrong.</p>';
+      }
+    }
+
+    document.getElementById('filterBtn').addEventListener('click', fetchListings);
+
+    // Load listings initially
+    window.onload = fetchListings;
+  </script>
+
 </body>
 </html>
