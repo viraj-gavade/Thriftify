@@ -80,8 +80,14 @@
     <h1>All Listings</h1>
 
     <div class="filters">
-      <input type="text" id="category" placeholder="Filter by Category (e.g., electronics)">
-      <input type="text" id="location" placeholder="Filter by Location (e.g., Mumbai)">
+        <label for="category">Filter by Category</label>
+        <select id="category" name="category">
+          <option value="electronics">Electronics</option>
+          <option value="furniture">Furniture</option>
+          <option value="clothing">Clothing</option>
+          <option value="books">Books</option>
+          <option value="others">Others</option>
+        </select>      <input type="text" id="location" placeholder="Filter by Location (e.g., Mumbai)">
       <select id="sortOrder">
         <option value="desc" selected>Newest First</option>
         <option value="asc">Oldest First</option>
