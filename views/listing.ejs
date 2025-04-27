@@ -311,7 +311,7 @@
 
             <!-- Place Order and Bookmark Links -->
             <div class="action-links">
-                <a href="/orders/place/<%= listing._id %>" id="placeOrderBtn" 
+                <a href="/api/v1/create-order<%= listing._id %>" id="placeOrderBtn" 
                    class="action-link primary-link <%= listing.isSold ? 'disabled-link' : '' %>"
                    onclick="<%= !listing.isSold ? 'event.preventDefault(); placeOrder();' : '' %>">
                     <i class="fas fa-shopping-cart"></i> Place Order
@@ -374,10 +374,9 @@
     }
 
     function placeOrder() {
-        // You can add functionality here to handle placing an order
-        window.location.href = `/orders/place/<%= listing._id %>`;
-        // Alternatively, use AJAX to submit the order and show feedback
-        // alert('Order placed successfully!');
+        const orderFormModal = document.getElementById('orderFormModal');
+        orderFormModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
     }
 
     function bookmarkListing() {
@@ -420,7 +419,542 @@
     if (sliderImage) {
         sliderImage.style.transition = 'opacity 0.2s ease-in-out';
     }
+    
+    // Close Order Form Modal
+    document.getElementById('closeOrderModal').addEventListener('click', () => {
+        document.getElementById('orderFormModal').classList.remove('active');
+        document.body.style.overflow = '';
+    });
+    
+    // Close Success Modal
+    document.getElementById('closeSuccessModal').addEventListener('click', () => {
+        document.getElementById('orderSuccessModal').classList.remove('active');
+        document.body.style.overflow = '';
+    });
+    
+    // Close modals if clicked outside
+    window.addEventListener('click', (e) => {
+        const orderFormModal = document.getElementById('orderFormModal');
+        const orderSuccessModal = document.getElementById('orderSuccessModal');
+        
+        if (e.target === orderFormModal) {
+            orderFormModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        if (e.target === orderSuccessModal) {
+            orderSuccessModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+    
+    // Handle form submission
+    document.getElementById('orderForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Show loading state
+        const submitBtn = this.querySelector('.submit-btn');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        submitBtn.disabled = true;
+        
+        // Gather form data
+        const formData = {
+            listingId: document.getElementById('orderListingId').value,
+            name: document.getElementById('name').value,
+            address: document.getElementById('address').value,
+            phone: document.getElementById('phone').value,
+            city: document.getElementById('city').value,
+            pincode: document.getElementById('pincode').value
+        };
+        
+        try {
+            const response = await fetch('/api/v1/create-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            console.log('Response:', response);
+            
+            const result = await response.json();
+            
+            // Reset button state
+            submitBtn.innerHTML = originalBtnText;
+            submitBtn.disabled = false;
+            
+            if (response.ok) {
+                // Hide order form and show success modal
+                document.getElementById('orderFormModal').classList.remove('active');
+                
+                // Set order details in success modal
+                document.getElementById('displayOrderId').textContent = result.message.order._id;
+                
+                // Set PayPal link
+                const paypalLink = document.getElementById('paypalLink');
+                paypalLink.href = result.message.paypalLink;
+                
+                // Show success modal
+                document.getElementById('orderSuccessModal').classList.add('active');
+                
+                // Optional: Reset form for future use
+                this.reset();
+            } else {
+                // Show error message
+                alert(`Error: ${result.message || 'Something went wrong'}`);
+            }
+        } catch (error) {
+            console.error('Error creating order:', error);
+            alert('Unable to process your order. Please try again later.');
+            
+            // Reset button state
+            submitBtn.innerHTML = originalBtnText;
+            submitBtn.disabled = false;
+        }
+    });
 </script>
+
+<!-- Order Form Modal -->
+<div class="modal" id="orderFormModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-shopping-bag"></i> Complete Your Order</h2>
+            <button class="close-btn" id="closeOrderModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="orderForm">
+                <input type="hidden" id="orderListingId" name="listingId" value="<%= listing._id %>">
+                
+                <div class="form-group">
+                    <label for="name"><i class="fas fa-user"></i> Full Name</label>
+                    <input type="text" id="name" name="name" required placeholder="Enter your full name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="address"><i class="fas fa-map-marker-alt"></i> Delivery Address</label>
+                    <textarea id="address" name="address" required placeholder="Enter your complete address"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phone"><i class="fas fa-phone"></i> Phone Number</label>
+                        <input type="tel" id="phone" name="phone" required placeholder="Enter your phone number" pattern="[0-9]{10}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="city"><i class="fas fa-city"></i> City</label>
+                        <input type="text" id="city" name="city" required placeholder="Enter your city">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pincode"><i class="fas fa-map-pin"></i> Pincode</label>
+                    <input type="text" id="pincode" name="pincode" required placeholder="Enter your pincode" pattern="[0-9]{6}">
+                </div>
+                
+                <div class="order-summary">
+                    <h3><i class="fas fa-receipt"></i> Order Summary</h3>
+                    <div class="summary-row">
+                        <span>Product:</span>
+                        <span><%= listing.title %></span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Price:</span>
+                        <span class="price-value">₹<%= listing.price %></span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Delivery:</span>
+                        <span>₹40</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total:</span>
+                        <span class="price-value">₹<%= parseInt(listing.price) + 40 %></span>
+                    </div>
+                </div>
+                
+                <div class="payment-methods">
+                    <h3><i class="fas fa-credit-card"></i> Payment Method</h3>
+                    <div class="payment-option">
+                        <input type="radio" id="paypal" name="paymentMethod" value="paypal" checked>
+                        <label for="paypal">
+                            <i class="fab fa-paypal"></i> PayPal
+                        </label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-check-circle"></i> Confirm Order
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Order Success Modal -->
+<div class="modal" id="orderSuccessModal">
+    <div class="modal-content">
+        <div class="modal-header success-header">
+            <h2><i class="fas fa-check-circle"></i> Order Placed Successfully!</h2>
+            <button class="close-btn" id="closeSuccessModal">&times;</button>
+        </div>
+        <div class="modal-body text-center">
+            <div class="success-animation">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            
+            <h3>Thank you for your order!</h3>
+            <p>Your order has been placed successfully. Please complete the payment to confirm your purchase.</p>
+            
+            <div class="order-details">
+                <div class="detail-row">
+                    <strong>Order ID:</strong>
+                    <span id="displayOrderId">-</span>
+                </div>
+                <div class="detail-row">
+                    <strong>Payment Status:</strong>
+                    <span class="badge pending">Pending</span>
+                </div>
+            </div>
+            
+            <a href="#" id="paypalLink" class="paypal-button" target="_blank">
+                <i class="fab fa-paypal"></i> Pay with PayPal
+            </a>
+            
+            <p class="order-note">
+                <i class="fas fa-info-circle"></i> After completing payment, you'll receive a confirmation email with your order details.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Order Form Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    
+    .modal.active {
+        display: flex;
+        opacity: 1;
+    }
+    
+    .modal-content {
+        background: white;
+        width: 100%;
+        max-width: 600px;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 0 30px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s forwards;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .modal-header {
+        background: #2c3e50;
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .close-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0 5px;
+        min-width: auto;
+    }
+    
+    .close-btn:hover {
+        color: #e74c3c;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-row {
+        display: flex;
+        gap: 15px;
+    }
+    
+    .form-row .form-group {
+        flex: 1;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .form-group label i {
+        color: #3498db;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: all 0.3s;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+    }
+    
+    .form-group textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+    
+    .order-summary {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 20px 0;
+        border-left: 4px solid #3498db;
+    }
+    
+    .order-summary h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #2c3e50;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .order-summary h3 i {
+        color: #3498db;
+    }
+    
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .summary-row.total {
+        border-bottom: none;
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 2px solid #ddd;
+    }
+    
+    .price-value {
+        color: #27ae60;
+        font-weight: 600;
+    }
+    
+    .payment-methods {
+        margin: 20px 0;
+    }
+    
+    .payment-methods h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #2c3e50;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .payment-methods h3 i {
+        color: #3498db;
+    }
+    
+    .payment-option {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .payment-option:hover {
+        border-color: #3498db;
+        background: rgba(52, 152, 219, 0.05);
+    }
+    
+    .payment-option input {
+        margin-right: 10px;
+    }
+    
+    .payment-option label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 500;
+        color: #2c3e50;
+        cursor: pointer;
+    }
+    
+    .payment-option i {
+        font-size: 1.5rem;
+        color: #0070ba;
+    }
+    
+    .submit-btn {
+        background: #27ae60;
+        color: white;
+        border: none;
+        width: 100%;
+        padding: 15px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s;
+    }
+    
+    .submit-btn:hover {
+        background: #219653;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+    }
+    
+    /* Success Modal Styles */
+    .success-header {
+        background: #27ae60;
+    }
+    
+    .text-center {
+        text-align: center;
+    }
+    
+    .success-animation {
+        font-size: 5rem;
+        color: #27ae60;
+        margin: 20px 0;
+        animation: bounceIn 1s;
+    }
+    
+    .order-details {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 20px 0;
+        border-left: 4px solid #3498db;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: white;
+    }
+    
+    .badge.pending {
+        background: #f39c12;
+    }
+    
+    .paypal-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: #0070ba;
+        color: white;
+        text-decoration: none;
+        padding: 15px 30px;
+        border-radius: 6px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 20px 0;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .paypal-button:hover {
+        background: #005ea6;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 112, 186, 0.3);
+    }
+    
+    .order-note {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    @keyframes bounceIn {
+        0% { transform: scale(0); opacity: 0; }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    @media (max-width: 768px) {
+        .form-row {
+            flex-direction: column;
+            gap: 0;
+        }
+    }
+</style>
 
 <%- include('partials/footer') %>
 
