@@ -85,7 +85,7 @@ const GetSingleListing =asyncHandler( async (req, res) => {
         if (!listing) {
             return res.status(404).json({ message: 'Listing not found' });
         }
-        return res.status(200).json(listing);
+        return res.status(200).render('listing', { listing: listing });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: 'Server error' });

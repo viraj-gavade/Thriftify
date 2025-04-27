@@ -46,7 +46,7 @@ Listingrouter.route('/listings').get( async (req, res) => {
        return res.status(500).json({ message: 'Server error' });
       }
 });
-Listingrouter.get('/listing/sorted',GetAllListings) // Get all listings
+Listingrouter.get('/listings/sorted',GetAllListings) // Get all listings
 Listingrouter.get('/listings/:id', GetSingleListing); // Get a single listing by ID
 Listingrouter.patch('/listings/:id', VerifyJwt, UpdateListing); // Update a listing by ID
 Listingrouter.delete('/listings/:id', VerifyJwt, DeleteListing); // Delete a listing by ID

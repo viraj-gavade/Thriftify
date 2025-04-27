@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= listing.title %> | Product Details</title>
+    <link rel="stylesheet" href="/your-styles.css">
+</head>
+<body>
+
+<div class="product-container">
+    <!-- IMAGE SLIDER -->
+    <div class="image-slider">
+        <% if (listing.images && listing.images.length > 0) { %>
+            <img id="sliderImage" src="<%= listing.images[0] %>" alt="Product Image">
+            <div class="slider-buttons">
+                <button onclick="prevImage()">❮</button>
+                <button onclick="nextImage()">❯</button>
+            </div>
+        <% } else { %>
+            <img src="https://via.placeholder.com/400" alt="No Image Available">
+        <% } %>
+    </div>
+
+    <!-- DETAILS -->
+    <div class="product-details">
+        <h1><%= listing.title %></h1>
+        <p><%= listing.description %></p>
+        <h2>₹<%= listing.price %></h2>
+
+        <p><strong>Category:</strong> <%= listing.category %></p>
+        <p><strong>Location:</strong> <%= listing.location %></p>
+        <p><strong>Posted By:</strong> <%= listing.postedBy?.fullname %> (<%= listing.postedBy?.email %>)</p>
+
+        <% if (listing.isSold) { %>
+            <div class="sold-badge">SOLD</div>
+        <% } %>
+
+        <p><small>Posted on: <%= new Date(listing.createdAt).toLocaleDateString() %></small></p>
+    </div>
+</div>
+
+<script>
+    const images = <%- JSON.stringify(listing.images || []) %>;
+    let currentImageIndex = 0;
+
+    function showImage(index) {
+        const sliderImage = document.getElementById('sliderImage');
+        if (sliderImage && images.length > 0) {
+            sliderImage.src = images[index];
+        }
+    }
+
+    function nextImage() {
+        currentImageIndex = (currentImageIndex + 1) % images.length;
+        showImage(currentImageIndex);
+    }
+
+    function prevImage() {
+        currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+        showImage(currentImageIndex);
+    }
+</script>
+
+</body>
+</html>

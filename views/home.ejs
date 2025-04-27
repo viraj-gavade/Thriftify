@@ -83,11 +83,12 @@
         <label for="category">Filter by Category</label>
         <select id="category" name="category">
             <option value="others">Others</option>
-          <option value="electronics">Electronics</option>
-          <option value="furniture">Furniture</option>
-          <option value="clothing">Clothing</option>
-          <option value="books">Books</option>
-        </select>      <input type="text" id="location" placeholder="Filter by Location (e.g., Mumbai)">
+            <option value="electronics">Electronics</option>
+            <option value="furniture">Furniture</option>
+            <option value="clothing">Clothing</option>
+            <option value="books">Books</option>
+        </select>      
+        <input type="text" id="location" placeholder="Filter by Location (e.g., Mumbai)">
       <select id="sortOrder">
         <option value="desc" selected>Newest First</option>
         <option value="asc">Oldest First</option>
@@ -111,13 +112,13 @@
       if (location) query += `&location=${encodeURIComponent(location)}`;
 
       try {
-        const res = await fetch(`/api/v1/listing/sorted${query}`);
+        const res = await fetch(`/api/v1/listings/sorted${query}`);
         const data = await res.json();
 
         const listingsDiv = document.getElementById('listings');
         listingsDiv.innerHTML = '';
 
-        if (!Array.isArray(data) || !data.length === 0) {
+        if (!Array.isArray(data) || data.length === 0) {
           // If no listings found, show a message
           listingsDiv.innerHTML = '<p id="noData">No listings found.</p>';
           return;
@@ -127,29 +128,29 @@
           const div = document.createElement('div');
           div.className = 'listing';
           div.innerHTML = `
-  <img src="${listing.images && listing.images.length ? listing.images[0] : 'https://via.placeholder.com/200'}" alt="Listing Image">
-  <div class="listing-details">
-    <h2>${listing.title || 'No Title'}</h2>
-    <p>${listing.description || 'No Description'}</p>
-    <div class="price">₹${listing.price || 'N/A'}</div>
-    <p><strong>Category:</strong> ${listing.category || 'N/A'}</p>
-    <p><strong>Location:</strong> ${listing.location || 'N/A'}</p>
-    <div class="posted-by">
-      Posted by: ${listing.postedBy?.fullname || 'Unknown'} (${listing.postedBy?.email || 'No Email'})
-    </div>
-    <!-- Buy Now Button -->
-    <button class="buyNowBtn">Buy Now</button>
+            <a href="/api/v1/listings/${listing._id}">
+              <img src="${listing.images && listing.images.length ? listing.images[0] : 'https://via.placeholder.com/200'}" alt="Listing Image">
+              <div class="listing-details">
+                <h2>${listing.title || 'No Title'}</h2>
+                <p>${listing.description || 'No Description'}</p>
+                <div class="price">₹${listing.price || 'N/A'}</div>
+                <p><strong>Category:</strong> ${listing.category || 'N/A'}</p>
+                <p><strong>Location:</strong> ${listing.location || 'N/A'}</p>
+                <div class="posted-by">
+                  Posted by: ${listing.postedBy?.fullname || 'Unknown'} (${listing.postedBy?.email || 'No Email'})
+                </div>
+              </div>
+            </a>
+            <!-- Buy Now Button -->
+            <button class="buyNowBtn">Buy Now</button>
 
-    <!-- Bookmark Button -->
-    <button class="bookmarkBtn">Bookmark</button>
-  </div>
-`;
+            <!-- Bookmark Button -->
+            <button class="bookmarkBtn">Bookmark</button>
+          `;
           listingsDiv.appendChild(div);
         });
       } catch (error) {
-        console.log( 'Error fetching listings:', error);
-        
-        console.error('Error fetching listings:', error);
+        console.log('Error fetching listings:', error);
         document.getElementById('listings').innerHTML = '<p id="noData">Something went wrong.</p>';
       }
     }
@@ -158,28 +159,27 @@
 
     // Event delegation for Buy Now and Bookmark buttons
     async function handleBookmark(listingId) {
-  try {
-    // Sending a request to the backend to bookmark the listing
-    const response = await fetch(`/api/bookmark/${listingId}`, {
-      method: 'POST', // or 'PUT', depending on your API design
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ listingId }) // Send the listingId as data
-    });
+      try {
+        const response = await fetch(`/api/bookmark/${listingId}`, {
+          method: 'POST', 
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ listingId })
+        });
 
-    if (response.ok) {
-      // If the response is OK, toggle the bookmark button state
-      const button = document.querySelector(`#bookmarkBtn-${listingId}`);
-      button.classList.toggle('bookmarked');
-      button.innerText = button.classList.contains('bookmarked') ? 'Bookmarked' : 'Bookmark';
-    } else {
-      console.error('Failed to bookmark the listing');
+        if (response.ok) {
+          const button = document.querySelector(`#bookmarkBtn-${listingId}`);
+          button.classList.toggle('bookmarked');
+          button.innerText = button.classList.contains('bookmarked') ? 'Bookmarked' : 'Bookmark';
+        } else {
+          console.error('Failed to bookmark the listing');
+        }
+      } catch (error) {
+        console.error('Error bookmarking the listing:', error);
+      }
     }
-  } catch (error) {
-    console.error('Error bookmarking the listing:', error);
-  }
-}
+
     // Load listings initially
     window.onload = fetchListings;
   </script>
