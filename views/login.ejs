@@ -84,7 +84,7 @@
             if (response.ok) {
                 // On success, redirect to the home page or dashboard
                 console.log("Login successful:", data);
-                window.location.href = "/"; // Redirect to home page
+                window.location.href = "/api/v1/listings"; // Redirect to home page
             } else {
                 // Show error message if login fails
                 document.getElementById("error-message").innerText = data.message || "Login failed!";

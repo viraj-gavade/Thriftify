@@ -13,7 +13,7 @@ const VerifyJwt = asyncHandler(async (req, res, next) => {
 
         // If no token is found, redirect the user to the signin page
         if (!token) {
-            return res.redirect('/api/v1/auth/user/signin');
+            return res.redirect('/api/v1/user/login');
         }
 
         // Verify the token using the secret stored in environment variables
@@ -24,7 +24,7 @@ const VerifyJwt = asyncHandler(async (req, res, next) => {
 
         // If no user is found, redirect the user to the signin page
         if (!user) {
-            return res.redirect('/api/v1/auth/user/signin');
+            return res.redirect('/api/v1/user/login');
         }
 
         // Attach the user to the request object to be used in subsequent middleware or routes

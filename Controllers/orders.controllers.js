@@ -116,7 +116,7 @@ const CreateOrder = asyncHandler(async (req, res) => {
       );
       
 
-
+      console.log("Order created successfully:", order);
     return res.status(201).json(
       new ApiResponse("Order created successfully", {
         order,

@@ -311,7 +311,7 @@
 
             <!-- Place Order and Bookmark Links -->
             <div class="action-links">
-                <a href="/api/v1/create-order<%= listing._id %>" id="placeOrderBtn" 
+                <a href="" id="placeOrderBtn" 
                    class="action-link primary-link <%= listing.isSold ? 'disabled-link' : '' %>"
                    onclick="<%= !listing.isSold ? 'event.preventDefault(); placeOrder();' : '' %>">
                     <i class="fas fa-shopping-cart"></i> Place Order
@@ -420,97 +420,123 @@
         sliderImage.style.transition = 'opacity 0.2s ease-in-out';
     }
     
-    // Close Order Form Modal
-    document.getElementById('closeOrderModal').addEventListener('click', () => {
-        document.getElementById('orderFormModal').classList.remove('active');
-        document.body.style.overflow = '';
-    });
-    
-    // Close Success Modal
-    document.getElementById('closeSuccessModal').addEventListener('click', () => {
-        document.getElementById('orderSuccessModal').classList.remove('active');
-        document.body.style.overflow = '';
-    });
-    
-    // Close modals if clicked outside
-    window.addEventListener('click', (e) => {
-        const orderFormModal = document.getElementById('orderFormModal');
-        const orderSuccessModal = document.getElementById('orderSuccessModal');
-        
-        if (e.target === orderFormModal) {
-            orderFormModal.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-        
-        if (e.target === orderSuccessModal) {
-            orderSuccessModal.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-    });
-    
-    // Handle form submission
-    document.getElementById('orderForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        // Show loading state
-        const submitBtn = this.querySelector('.submit-btn');
-        const originalBtnText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-        submitBtn.disabled = true;
-        
-        // Gather form data
-        const formData = {
-            listingId: document.getElementById('orderListingId').value,
-            name: document.getElementById('name').value,
-            address: document.getElementById('address').value,
-            phone: document.getElementById('phone').value,
-            city: document.getElementById('city').value,
-            pincode: document.getElementById('pincode').value
-        };
-        
-        try {
-            const response = await fetch('/api/v1/create-order', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            });
-            console.log('Response:', response);
-            
-            const result = await response.json();
-            
-            // Reset button state
-            submitBtn.innerHTML = originalBtnText;
-            submitBtn.disabled = false;
-            
-            if (response.ok) {
-                // Hide order form and show success modal
+    document.addEventListener('DOMContentLoaded', function() {
+        // Close Order Form Modal
+        const closeOrderModalBtn = document.getElementById('closeOrderModal');
+        if (closeOrderModalBtn) {
+            closeOrderModalBtn.addEventListener('click', () => {
                 document.getElementById('orderFormModal').classList.remove('active');
-                
-                // Set order details in success modal
-                document.getElementById('displayOrderId').textContent = result.message.order._id;
-                
-                // Set PayPal link
-                const paypalLink = document.getElementById('paypalLink');
-                paypalLink.href = result.message.paypalLink;
-                
-                // Show success modal
-                document.getElementById('orderSuccessModal').classList.add('active');
-                
-                // Optional: Reset form for future use
-                this.reset();
-            } else {
-                // Show error message
-                alert(`Error: ${result.message || 'Something went wrong'}`);
-            }
-        } catch (error) {
-            console.error('Error creating order:', error);
-            alert('Unable to process your order. Please try again later.');
+                document.body.style.overflow = '';
+            });
+        }
+        
+        // Close Success Modal
+        const closeSuccessModalBtn = document.getElementById('closeSuccessModal');
+        if (closeSuccessModalBtn) {
+            closeSuccessModalBtn.addEventListener('click', () => {
+                document.getElementById('orderSuccessModal').classList.remove('active');
+                document.body.style.overflow = '';
+            });
+        }
+        
+        // Close modals if clicked outside
+        window.addEventListener('click', (e) => {
+            const orderFormModal = document.getElementById('orderFormModal');
+            const orderSuccessModal = document.getElementById('orderSuccessModal');
             
-            // Reset button state
-            submitBtn.innerHTML = originalBtnText;
-            submitBtn.disabled = false;
+            if (e.target === orderFormModal) {
+                orderFormModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+            
+            if (e.target === orderSuccessModal) {
+                orderSuccessModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+        
+        // Handle form submission
+        const orderForm = document.getElementById('orderForm');
+        if (orderForm) {
+            orderForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Show loading state
+                const submitBtn = this.querySelector('.submit-btn');
+                const originalBtnText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                submitBtn.disabled = true;
+                
+                // Gather form data
+                const formData = {
+                    listingId: document.getElementById('orderListingId').value,
+                    name: document.getElementById('name').value,
+                    address: document.getElementById('address').value,
+                    phone: document.getElementById('phone').value,
+                    city: document.getElementById('city').value,
+                    pincode: document.getElementById('pincode').value
+                };
+                
+                try {
+                    // Send request to the correct API endpoint
+                    const response = await fetch('/api/v1/create-order', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+
+                    });
+
+                    console.log('Order API request:', formData);
+                    console.log('Order API response status:', response)
+                    
+                    const result = await response.json();
+                    console.log('Order API response:', result);
+                    
+                    // Reset button state
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
+                    
+                    if (response.ok) {
+                        // Hide order form and show success modal
+                        document.getElementById('orderFormModal').classList.remove('active');
+                        
+                        // Set order details in success modal
+                        const displayOrderId = document.getElementById('displayOrderId');
+                        if (displayOrderId) {
+                            displayOrderId.textContent = result.message.order._id;
+                        }
+                        
+                        // Set PayPal link
+                        const paypalLink = document.getElementById('paypalLink');
+                        if (paypalLink) {
+                            paypalLink.href = result.message.paypalLink;
+                        }
+                        
+                        // Show success modal
+                        const successModal = document.getElementById('orderSuccessModal');
+                        if (successModal) {
+                            successModal.classList.add('active');
+                        }
+                        
+                        // Optional: Reset form for future use
+                        this.reset();
+                    } else {
+                        // Show error message
+                        alert(`Error: ${result.message || 'Something went wrong'}`);
+                    }
+                } catch (error) {
+                    console.error('Error creating order:', error);
+                    alert('Unable to process your order. Please try again later.');
+                    
+                    // Reset button state
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
+                }
+            });
+        } else {
+            console.error('Order form not found in the DOM');
         }
     });
 </script>
