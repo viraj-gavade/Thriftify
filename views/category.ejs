@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= category %> | Thriftify</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .category-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .category-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .category-header h1 {
+            font-size: 2.5rem;
+            text-transform: capitalize;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .category-description {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .filters-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .filter-label {
+            font-weight: 500;
+            color: #555;
+        }
+
+        select, input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .listings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .listing-card {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            background-color: white;
+        }
+
+        .listing-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .listing-image {
+            height: 200px;
+            width: 100%;
+            object-fit: cover;
+        }
+
+        .listing-details {
+            padding: 1.2rem;
+        }
+
+        .listing-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .listing-price {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #3498db;
+            margin-bottom: 0.5rem;
+        }
+
+        .listing-location {
+            display: flex;
+            align-items: center;
+            color: #777;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .listing-date {
+            color: #999;
+            font-size: 0.8rem;
+        }
+
+        .category-tag {
+            display: inline-block;
+            background-color: #e1f5fe;
+            color: #0288d1;
+            padding: 0.3rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .no-results h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.6rem 1.2rem;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        .category-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .category-tab {
+            padding: 0.7rem 1.5rem;
+            background-color: #f0f0f0;
+            border-radius: 50px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: capitalize;
+        }
+
+        .category-tab:hover {
+            background-color: #e0e0e0;
+        }
+
+        .category-tab.active {
+            background-color: #3498db;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .filters-container {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            
+            .category-tabs {
+                gap: 0.3rem;
+            }
+            
+            .category-tab {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            .listings-grid {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+                gap: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Include header/navigation -->
+    <%- include('partials/header') %>
+    
+    <div class="category-container">
+        <div class="category-header">
+            <h1><%= category %></h1>
+            <p class="category-description">
+                <% if (category === 'electronics') { %>
+                    Find quality used electronics including phones, laptops, and more at great prices.
+                <% } else if (category === 'furniture') { %>
+                    Discover secondhand furniture pieces to make your space beautiful and functional.
+                <% } else if (category === 'clothing') { %>
+                    Browse gently used clothing items and accessories for all styles and occasions.
+                <% } else if (category === 'books') { %>
+                    Explore a wide selection of pre-loved books from various genres and authors.
+                <% } else { %>
+                    Browse a variety of unique items in this category.
+                <% } %>
+            </p>
+        </div>
+        
+        <div class="category-tabs">
+            <a href="/api/v1/category/electronics" class="category-tab <%= category === 'electronics' ? 'active' : '' %>">Electronics</a>
+            <a href="/api/v1/category/furniture" class="category-tab <%= category === 'furniture' ? 'active' : '' %>">Furniture</a>
+            <a href="/api/v1/category/clothing" class="category-tab <%= category === 'clothing' ? 'active' : '' %>">Clothing</a>
+            <a href="/api/v1/category/books" class="category-tab <%= category === 'books' ? 'active' : '' %>">Books</a>
+            <a href="/api/v1/category/others" class="category-tab <%= category === 'others' ? 'active' : '' %>">Others</a>
+        </div>
+        
+        <div class="filters-container">
+            <div class="filter-group">
+                <span class="filter-label">Sort by:</span>
+                <select id="sort-filter">
+                    <option value="newest">Newest</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <span class="filter-label">Price Range:</span>
+                <input type="number" id="min-price" placeholder="Min" min="0">
+                <span>-</span>
+                <input type="number" id="max-price" placeholder="Max" min="0">
+                <button id="apply-filters" class="btn">Apply</button>
+            </div>
+        </div>
+        
+        <div class="listings-grid">
+            <% if (listings && listings.length > 0) { %>
+                <% listings.forEach(listing => { %>
+                    <div class="listing-card">
+                        <a href="/listings/<%= listing._id %>">
+                            <img src="<%= listing.images && listing.images.length > 0 ? listing.images[0] : '/images/default-listing.png' %>" alt="<%= listing.title %>" class="listing-image">
+                        </a>
+                        <div class="listing-details">
+                            <span class="category-tag"><%= listing.category %></span>
+                            <h3 class="listing-title"><%= listing.title %></h3>
+                            <div class="listing-price">₹<%= listing.price.toLocaleString() %></div>
+                            <div class="listing-location">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px;">
+                                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                                </svg>
+                                <%= listing.location %>
+                            </div>
+                            <div class="listing-date">
+                                Posted <%= new Date(listing.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="no-results">
+                    <h3>No listings found in this category</h3>
+                    <p>Be the first to post an item for sale in the <%= category %> category!</p>
+                    <a href="/listings/create" class="btn">Post New Listing</a>
+                </div>
+            <% } %>
+        </div>
+    </div>
+    
+    <!-- Include footer -->
+    <%- include('partials/footer') %>
+    
+    <script>
+        // Sorting and filtering functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const sortFilter = document.getElementById('sort-filter');
+            const minPrice = document.getElementById('min-price');
+            const maxPrice = document.getElementById('max-price');
+            const applyFiltersBtn = document.getElementById('apply-filters');
+            
+            // Apply filters when button is clicked
+            applyFiltersBtn.addEventListener('click', function() {
+                applyFilters();
+            });
+            
+            // Apply filters when sort option changes
+            sortFilter.addEventListener('change', function() {
+                applyFilters();
+            });
+            
+            function applyFilters() {
+                const currentUrl = new URL(window.location.href);
+                const params = currentUrl.searchParams;
+                
+                // Set sort parameter
+                if (sortFilter.value) {
+                    params.set('sort', sortFilter.value);
+                } else {
+                    params.delete('sort');
+                }
+                
+                // Set price range parameters
+                if (minPrice.value) {
+                    params.set('min', minPrice.value);
+                } else {
+                    params.delete('min');
+                }
+                
+                if (maxPrice.value) {
+                    params.set('max', maxPrice.value);
+                } else {
+                    params.delete('max');
+                }
+                
+                // Navigate to the filtered URL
+                window.location.href = currentUrl.toString();
+            }
+            
+            // Set form values from URL parameters on page load
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (urlParams.has('sort')) {
+                sortFilter.value = urlParams.get('sort');
+            }
+            
+            if (urlParams.has('min')) {
+                minPrice.value = urlParams.get('min');
+            }
+            
+            if (urlParams.has('max')) {
+                maxPrice.value = urlParams.get('max');
+            }
+        });
+    </script>
+</body>
+</html>

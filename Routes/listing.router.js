@@ -30,4 +30,67 @@ Listingrouter.get('/user/listings/:id', VerifyJwt, GetUserListingById); // Get a
 Listingrouter.post('/user/bookmarks', VerifyJwt, AddToBookmarks); // Add a listing to bookmarks
 Listingrouter.delete('/user/bookmarks', VerifyJwt, RemoveFromBookmarks); // Remove a listing from bookmarks
 
+// Default route for category page - redirects to "others" category by default
+Listingrouter.get('/category', (req, res) => {
+    res.redirect('/api/v1/category/others');
+});
+
+// Route to display listings by category
+Listingrouter.get('/category/:category', async (req, res) => {
+    try {
+        const { category } = req.params;
+        const validCategories = ['electronics', 'furniture', 'clothing', 'books', 'others'];
+        
+        // Validate category
+        if (!validCategories.includes(category)) {
+            return res.redirect('/category/others'); // Redirect to others instead of showing error
+        }
+        
+        // Get query parameters for filtering
+        const { sort, min, max } = req.query;
+        
+        // Build query object
+        const query = { 
+            category,
+            isSold: false 
+        };
+        
+        // Add price range filtering if specified
+        if (min || max) {
+            query.price = {};
+            if (min) query.price.$gte = Number(min);
+            if (max) query.price.$lte = Number(max);
+        }
+        
+        // Build sort options
+        let sortOption = { createdAt: -1 }; // Default: newest first
+        
+        if (sort === 'price-low') {
+            sortOption = { price: 1 };
+        } else if (sort === 'price-high') {
+            sortOption = { price: -1 };
+        }
+        
+        // Fetch listings from database
+        const listings = await Listing.find(query)
+            .sort(sortOption)
+            .populate('postedBy', 'username')
+            .exec();
+        
+        // Render the category page with listings
+        res.render('category', {
+            category,
+            listings,
+            title: `${category.charAt(0).toUpperCase() + category.slice(1)} | Thriftify`
+        });
+        
+    } catch (error) {
+        console.error('Error fetching category listings:', error);
+        res.status(500).render('error', { 
+            message: 'Error loading category page',
+            error: { status: 500 }
+        });
+    }
+});
+
 module.exports = Listingrouter;
