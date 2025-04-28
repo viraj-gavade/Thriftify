@@ -1,0 +1,133 @@
+<%- include('./partials/header') %>
+
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0">Add New Listing</h3>
+        </div>
+        <div class="card-body">
+          <form id="listingForm" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label for="title" class="form-label">Title</label>
+              <input type="text" class="form-control" id="title" name="title" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+            </div>
+            
+            <div class="mb-3">
+              <label for="price" class="form-label">Price (£)</label>
+              <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="category" class="form-label">Category</label>
+              <select class="form-select" id="category" name="category" required>
+                <option value="" selected disabled>Select a category</option>
+                <option value="electronics">Electronics</option>
+                <option value="furniture">Furniture</option>
+                <option value="clothing">Clothing</option>
+                <option value="books">Books</option>
+                <option value="others">Others</option>
+              </select>
+            </div>
+            
+            <div class="mb-3">
+              <label for="location" class="form-label">Location</label>
+              <input type="text" class="form-control" id="location" name="location" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="images" class="form-label">Images (Maximum 5)</label>
+              <div class="input-group mb-3">
+                <input type="file" class="form-control" id="images" name="images" multiple accept="image/*" required>
+                <label class="input-group-text" for="images">Upload</label>
+              </div>
+              <div class="form-text">You can upload up to 5 images. Supported formats: JPG, PNG, GIF</div>
+              <div id="imagePreview" class="mt-2 d-flex flex-wrap gap-2"></div>
+            </div>
+            
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-circle me-2"></i>Create Listing
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Image preview functionality
+    const imageInput = document.getElementById('images');
+    const imagePreview = document.getElementById('imagePreview');
+    
+    imageInput.addEventListener('change', function() {
+      imagePreview.innerHTML = '';
+      if (this.files.length > 5) {
+        alert('You can upload a maximum of 5 images');
+        this.value = '';
+        return;
+      }
+      
+      Array.from(this.files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          img.style.width = '100px';
+          img.style.height = '100px';
+          img.style.objectFit = 'cover';
+          img.className = 'border rounded';
+          imagePreview.appendChild(img);
+        }
+        reader.readAsDataURL(file);
+      });
+    });
+    
+    // Form submission
+    const listingForm = document.getElementById('listingForm');
+    
+    listingForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      
+      // Rename 'images' to match the backend expectation
+      const imageFiles = formData.getAll('images');
+      formData.delete('images');
+      imageFiles.forEach(file => {
+        formData.append('images', file);
+      });
+      
+      try {
+        const response = await fetch('/api/v1/listings', {
+          method: 'POST',
+          body: formData,
+          // No Content-Type header as FormData sets it automatically with boundary
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          alert('Listing created successfully!');
+          window.location.href = '/'; // Redirect to listings page
+        } else {
+          alert(`Error: ${data.message || 'Could not create listing'}`);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while creating the listing');
+      }
+    });
+  });
+</script>
+
+<%- include('./partials/footer') %>

@@ -18,6 +18,13 @@ const ListingSchema = new mongoose.Schema({
         type: String,
         enum: ['electronics', 'furniture', 'clothing', 'books', 'others'],
         required: true,
+        set: function(value) {
+            if (value) return value.toLowerCase();
+            return value;
+        },
+        get: function(value) {
+            return value;
+        }
     },
     images: [String],
     postedBy: {
