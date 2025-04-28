@@ -169,7 +169,7 @@
             
             <div class="tab-content active" id="profile-details">
                 <h3>Update Profile Details</h3>
-                <form action="/user/update-details" method="PATCH" id="update-details-form">
+                <form action="/api/v1/user/update-details" method="PATCH" id="update-details-form">
                     <div class="form-group">
                         <label for="fullname">Full Name</label>
                         <input type="text" id="fullname" name="fullname" value="<%= user.fullname %>" required>
@@ -188,7 +188,7 @@
             
             <div class="tab-content" id="change-password">
                 <h3>Change Password</h3>
-                <form action="/user/update-password" method="PATCH" id="update-password-form">
+                <form action="/api/v1/user/update-password" method="PATCH" id="update-password-form">
                     <div class="form-group">
                         <label for="oldPassword">Current Password</label>
                         <input type="password" id="oldPassword" name="oldPassword" required>
@@ -207,7 +207,7 @@
             
             <div class="tab-content" id="update-profile-pic">
                 <h3>Update Profile Picture</h3>
-                <form action="/user/update-profilepic" method="PATCH" id="update-profilepic-form" enctype="multipart/form-data">
+                <form action="/api/v1/user/update-profilepic" method="PATCH" id="update-profilepic-form" enctype="multipart/form-data">
                     <div class="form-group">
                         <label for="profilepic">Select New Profile Picture</label>
                         <input type="file" id="profilepic" name="profilepic" accept="image/*" required>
@@ -311,7 +311,7 @@
             e.preventDefault();
             const formData = new FormData(this);
             
-            fetch('/user/update-details', {
+            fetch('/api/v1/user/update-details', {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
@@ -342,7 +342,7 @@
                 return;
             }
             
-            fetch('/user/update-password', {
+            fetch('/api/v1/user/update-password', {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
@@ -386,7 +386,7 @@
             e.preventDefault();
             const formData = new FormData(this);
             
-            fetch('/user/update-profilepic', {
+            fetch('/api/v1/user/update-profilepic', {
                 method: 'PATCH',
                 body: formData
             })
