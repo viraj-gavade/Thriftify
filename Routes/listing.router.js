@@ -19,32 +19,7 @@ const VerifyJwt = require('../Middlewares/authentication.middleware');
 Listingrouter.post('/listings', VerifyJwt, upload.array('images', 5), CreateListing);
 
 Listingrouter.route('/listings').get( async (req, res) => {
-    try {
-        const sortBy = req.query.sortBy || 'createdAt';
-        const category = req.query.category;
-        const location = req.query.location;
-        const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
     
-        // Build query object dynamically
-        const query = {};
-        if (category) query.category = category;
-        if (location) query.location = location;
-    
-        // Find and sort
-        const listings = await Listing.find(query)
-          .populate('postedBy', 'fullname email')
-          .sort({ [sortBy]: sortOrder });
-    
-        if (!listings.length) {
-          return res.render('home', { listings: [] });
-        }
-    
-       return res.status(200).render('home', { listings: listings });
-      } catch (error) {
-       return  res.render('home');
-        console.error('Error fetching listings:', error);
-       return res.status(500).json({ message: 'Server error' });
-      }
 });
 Listingrouter.get('/listings/sorted',GetAllListings) // Get all listings
 Listingrouter.get('/listings/:id', GetSingleListing); // Get a single listing by ID

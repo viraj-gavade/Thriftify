@@ -1,4 +1,3 @@
-
 const CustomApiError = require('../utils/apiErrors') // Custom error handling class
 const ApiResponse = require('../utils/apiResponse') // Custom error handling class
 const Order = require('../Schemas/order.schemas') // Order model for database operations
@@ -18,7 +17,7 @@ const CreateOrder = asyncHandler(async (req, res) => {
     const listing = await Listing.findById(listingId);
     if (!listing) throw new CustomApiError("Listing not found", 404);
 
-    // 💰 Step 1: Get PayPal access token
+    
     const basicAuth = Buffer.from(
       `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
     ).toString("base64");
@@ -43,15 +42,18 @@ const CreateOrder = asyncHandler(async (req, res) => {
         purchase_units: [
           {
             amount: {
-              currency_code: "USD", // or INR if you’ve enabled it
-              value: listing.price, // Assuming listing has a price field
+              currency_code: "USD",
+              value: listing.price, 
             },
           },
         ],
         application_context: {
-            return_url: "http://localhost:3000/payment-success", // or your deployed frontend
-            cancel_url: "http://localhost:3000/payment-cancel",  // same here
-          },
+          return_url: `${process.env.BASE_URL || 'http://localhost:3000'}/payment-success`, // Use environment variable for BASE_URL
+          cancel_url: `${process.env.BASE_URL || 'http://localhost:3000'}/payment-cancel`,
+          brand_name: "Thriftify",
+          user_action: "PAY_NOW", // Prompt the user to pay immediately
+          shipping_preference: "SET_PROVIDED_ADDRESS", // Use the shipping address provided
+        },
       },
       
       {
@@ -193,6 +195,8 @@ const capturePayment = asyncHandler(async (req, res) => {
       if (!updatedOrder) {
         throw new CustomApiError("Order not found for the given PayPal token", 404);
       }
+
+      console.log("Payment captured successfully:");
   
       return res.status(200).json(new ApiResponse("✅ Payment captured successfully", updatedOrder));
     } catch (err) {

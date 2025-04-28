@@ -7,12 +7,14 @@ const path = require('path');
 const connectdb = require('./DataBase/connect');
 const jwt = require('jsonwebtoken');
 let userSocketMap = {}; //
+const Listing = require('./Schemas/listings.schemas'); // Import the Listing model
 
 // Routers
 const UserRouter = require('./Routes/user.router');
 const ListingRouter = require('./Routes/listing.router');
 const OrderRouter = require('./Routes/orders.router');
 const ChatRouter = require('./Routes/chat.router'); // New
+const asyncHandler = require('./utils/asynchandler');
 
 // Initialize app and server
 const app = express();
@@ -37,9 +39,33 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Routes
-app.get('/', (req, res) => {
-  res.status(200).json({ message: 'Server is running' });
-});
+app.get('/', asyncHandler(async(req, res) => {
+  try {
+    const sortBy = req.query.sortBy || 'createdAt';
+    const category = req.query.category;
+    const location = req.query.location;
+    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+
+    // Build query object dynamically
+    const query = {};
+    if (category) query.category = category;
+    if (location) query.location = location;
+
+    // Find and sort
+    const listings = await Listing.find(query)
+      .populate('postedBy', 'fullname email')
+      .sort({ [sortBy]: sortOrder });
+
+    if (!listings.length) {
+      return res.render('home', { listings: [] });
+    }
+
+   return res.status(200).render('home', { listings: listings });
+  } catch (error) {
+    console.error('Error fetching listings:', error);
+  }
+ 
+}));
 
 app.use('/api/v1/user', UserRouter);
 app.use('/api/v1/', ListingRouter);
@@ -56,6 +82,26 @@ app.get('/payment-cancel', (req, res) => {
 
 app.get('/payment-success', (req, res) => {
   res.status(200).render('home.ejs');
+});
+
+// PayPal payment callback routes
+app.get('/payment-success', (req, res) => {
+  res.render('payment-success');
+});
+
+app.get('/payment-cancel', (req, res) => {
+  res.render('payment-cancel', { message: 'Payment was cancelled. Your order has not been processed.' });
+});
+
+// PayPal success/cancel callback routes
+app.get('/payment-success', (req, res) => {
+  // Render the payment success page
+  res.render('payment-success');
+});
+
+app.get('/payment-cancel', (req, res) => {
+  // Render the payment cancel page
+  res.render('payment-cancel', { message: 'Your payment was cancelled. The order has not been processed.' });
 });
 
 // Socket.IO Real-Time Messaging
