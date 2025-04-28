@@ -38,13 +38,46 @@ app.use(cors());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// Authentication middleware to pass user data to templates
+app.use((req, res, next) => {
+  const token = req.cookies.token;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
+      req.user = decoded;
+      res.locals.user = decoded; // Make user available to all templates
+    } catch (error) {
+      res.locals.user = null;
+      console.error('Token verification failed:', error.message);
+    }
+  } else {
+    res.locals.user = null;
+  }
+  next();
+});
+
 // Routes
 app.get('/', asyncHandler(async(req, res) => {
   try {
+    // Get authentication token and set user in locals for template
+    const token = req.cookies.token;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
+        req.user = decoded;
+        res.locals.user = decoded; // Make user available to template
+      } catch (error) {
+        res.locals.user = null;
+      }
+    } else {
+      res.locals.user = null;
+    }
+
     const sortBy = req.query.sortBy || 'createdAt';
     const category = req.query.category;
     const location = req.query.location;
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+    const user = req.user; // Get user from JWT middleware
 
     // Build query object dynamically
     const query = {};
@@ -73,14 +106,53 @@ app.use('/api/v1/', OrderRouter);
 
 // Chat route to load the chat page
 app.get('/api/v1/chat', (req, res) => {
+  // Get authentication token and set user in locals for template
+  const token = req.cookies.token;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
+      req.user = decoded;
+      res.locals.user = decoded;
+    } catch (error) {
+      res.locals.user = null;
+    }
+  } else {
+    res.locals.user = null;
+  }
   res.status(200).render('chat.ejs');
 });
 
 app.get('/payment-cancel', (req, res) => {
+  // Get authentication token and set user in locals for template
+  const token = req.cookies.token;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
+      req.user = decoded;
+      res.locals.user = decoded;
+    } catch (error) {
+      res.locals.user = null;
+    }
+  } else {
+    res.locals.user = null;
+  }
   res.status(200).render('index.ejs');
 });
 
 app.get('/payment-success', (req, res) => {
+  // Get authentication token and set user in locals for template
+  const token = req.cookies.token;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
+      req.user = decoded;
+      res.locals.user = decoded;
+    } catch (error) {
+      res.locals.user = null;
+    }
+  } else {
+    res.locals.user = null;
+  }
   res.status(200).render('home.ejs');
 });
 
@@ -102,6 +174,27 @@ app.get('/payment-success', (req, res) => {
 app.get('/payment-cancel', (req, res) => {
   // Render the payment cancel page
   res.render('payment-cancel', { message: 'Your payment was cancelled. The order has not been processed.' });
+});
+
+// Authentication routes to serve login and signup pages
+app.get('/login', (req, res) => {
+  res.render('login');
+});
+
+app.get('/signup', (req, res) => {
+  res.render('signup');
+});
+
+app.get('/logout', (req, res) => {
+  const options = {
+    httpOnly: true,
+    secure: true
+  };
+  
+  return res.status(200)
+    .clearCookie('token', options)
+    .clearCookie('refreshToken', options)
+    .redirect('/');
 });
 
 // Socket.IO Real-Time Messaging

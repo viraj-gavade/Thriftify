@@ -557,9 +557,15 @@
       <div class="nav-links">
         <a href="/"><i class="fas fa-home"></i> Home</a>
         <a href="/api/v1/category/"><i class="fas fa-list"></i> Categories</a>
-        <a href="/api/v1/user/profile"><i class="fas fa-user"></i> profile</a>
-        <a href="/bookmarks"><i class="fas fa-bookmark"></i> Bookmarks</a>
-        <a href="/category">Categories</a>
+        
+        <% if (locals.user) { %>
+          <a href="/api/v1/user/profile"><i class="fas fa-user"></i> Profile</a>
+          <a href="/bookmarks"><i class="fas fa-bookmark"></i> Bookmarks</a>
+          <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <% } else { %>
+          <a href="/api/v1/user/login"><i class="fas fa-sign-in-alt"></i> Sign In</a>
+          <a href="/api/v1/user/signup"><i class="fas fa-user-plus"></i> Sign Up</a>
+        <% } %>
       </div>
     </div>
   </nav>

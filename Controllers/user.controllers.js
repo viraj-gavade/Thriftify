@@ -136,11 +136,10 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     // Send the generated tokens in cookies and redirect to home page
-    return res.status(200).cookie('accessToken', accessToken, options).cookie('refreshToken', refreshToken, options).json({
-        status: 'success',
-        message: 'User Logged In Successfully!',
-        user: loggedInUser
-    })
+    return res.status(200)
+        .cookie('token', accessToken, options)
+        .cookie('refreshToken', refreshToken, options)
+        .redirect('/');
 })
 
 // Async handler to manage user logout functionality
@@ -151,10 +150,11 @@ const logoutUser = asyncHandler(async (req, res) => {
         secure: true
     }
 
-    // Clear access and refresh tokens cookies and return a response
-    return res.status(200).clearCookie('accessToken', options).clearCookie('refreshToken', options).json(
-        new ApiResponse(200, 'User Logged Out Successfully!')
-    )
+    // Clear tokens and redirect to home page
+    return res.status(200)
+        .clearCookie('token', options)
+        .clearCookie('refreshToken', options)
+        .redirect('/');
 })
 
 const getUser = asyncHandler(async (req, res) => {
