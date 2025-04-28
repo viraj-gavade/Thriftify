@@ -29,6 +29,19 @@ UserRouter.route('/login')
 // Logout route: handles user logout
 UserRouter.route('/signout').get(logoutUser);
 
+// User profile page route
+UserRouter.route('/profile')
+    .get(VerifyJwt, async (req, res) => {
+        try {
+            // Get user data from req.user set by VerifyJwt middleware
+            const user = req.user;
+            res.render('profile', { user });
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+            res.status(500).json({ error: 'Error loading profile' });
+        }
+    });
+
 UserRouter.route('/profile/:id').get(getUser);
 
 UserRouter.route('/update-details').patch(VerifyJwt,UpdateDetails);

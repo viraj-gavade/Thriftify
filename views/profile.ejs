@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Profile | Thriftify</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .profile-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .profile-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+            gap: 2rem;
+        }
+        
+        .profile-pic {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid #f0f0f0;
+        }
+        
+        .profile-info h1 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .profile-username {
+            color: #777;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 2rem;
+        }
+        
+        .tab {
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom: 3px solid #3498db;
+            color: #3498db;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .listings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .listing-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .listing-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+        }
+        
+        .listing-info {
+            padding: 1rem;
+        }
+        
+        .listing-title {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        
+        .listing-price {
+            color: #3498db;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- Include header/navigation if you have one -->
+    <%- include('partials/header') %>
+    
+    <div class="profile-container">
+        <div class="profile-header">
+            <img src="<%= user.profilepic || '/images/default-profile.png' %>" alt="Profile Picture" class="profile-pic">
+            <div class="profile-info">
+                <h1><%= user.fullname %></h1>
+                <div class="profile-username">@<%= user.username %></div>
+                <div>Member since <%= new Date(user.createdAt).toLocaleDateString() %></div>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="my-info">My Info</div>
+            <div class="tab" data-tab="my-listings">My Listings</div>
+            <div class="tab" data-tab="my-orders">My Orders</div>
+            <div class="tab" data-tab="bookmarks">Bookmarks</div>
+        </div>
+        
+        <div class="tab-content active" id="my-info">
+            <div class="tabs">
+                <div class="tab active" data-subtab="profile-details">Profile Details</div>
+                <div class="tab" data-subtab="change-password">Change Password</div>
+                <div class="tab" data-subtab="update-profile-pic">Update Profile Picture</div>
+            </div>
+            
+            <div class="tab-content active" id="profile-details">
+                <h3>Update Profile Details</h3>
+                <form action="/user/update-details" method="PATCH" id="update-details-form">
+                    <div class="form-group">
+                        <label for="fullname">Full Name</label>
+                        <input type="text" id="fullname" name="fullname" value="<%= user.fullname %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" value="<%= user.username %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" value="<%= user.email %>" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Details</button>
+                </form>
+            </div>
+            
+            <div class="tab-content" id="change-password">
+                <h3>Change Password</h3>
+                <form action="/user/update-password" method="PATCH" id="update-password-form">
+                    <div class="form-group">
+                        <label for="oldPassword">Current Password</label>
+                        <input type="password" id="oldPassword" name="oldPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">New Password</label>
+                        <input type="password" id="newPassword" name="newPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm New Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </form>
+            </div>
+            
+            <div class="tab-content" id="update-profile-pic">
+                <h3>Update Profile Picture</h3>
+                <form action="/user/update-profilepic" method="PATCH" id="update-profilepic-form" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="profilepic">Select New Profile Picture</label>
+                        <input type="file" id="profilepic" name="profilepic" accept="image/*" required>
+                    </div>
+                    <div class="form-group">
+                        <img id="preview" src="#" alt="Preview" style="max-width: 200px; max-height: 200px; display: none;">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Profile Picture</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="my-listings">
+            <h3>My Listings</h3>
+            <% if (user.listings && user.listings.length > 0) { %>
+                <div class="listings-grid">
+                    <% user.listings.forEach(listing => { %>
+                        <div class="listing-card">
+                            <img src="<%= listing.images[0] || '/images/default-product.png' %>" alt="<%= listing.title %>">
+                            <div class="listing-info">
+                                <h4 class="listing-title"><%= listing.title %></h4>
+                                <div class="listing-price">₹<%= listing.price %></div>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } else { %>
+                <p>You haven't created any listings yet.</p>
+            <% } %>
+        </div>
+        
+        <div class="tab-content" id="my-orders">
+            <h3>My Orders</h3>
+            <% if (user.orders && user.orders.length > 0) { %>
+                <!-- Display orders -->
+                <div class="orders-list">
+                    <!-- Your order display logic here -->
+                </div>
+            <% } else { %>
+                <p>You haven't placed any orders yet.</p>
+            <% } %>
+        </div>
+        
+        <div class="tab-content" id="bookmarks">
+            <h3>Bookmarked Items</h3>
+            <% if (user.Bookmarks && user.Bookmarks.length > 0) { %>
+                <div class="listings-grid">
+                    <% user.Bookmarks.forEach(bookmark => { %>
+                        <div class="listing-card">
+                            <img src="<%= bookmark.images[0] || '/images/default-product.png' %>" alt="<%= bookmark.title %>">
+                            <div class="listing-info">
+                                <h4 class="listing-title"><%= bookmark.title %></h4>
+                                <div class="listing-price">₹<%= bookmark.price %></div>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } else { %>
+                <p>You haven't bookmarked any items yet.</p>
+            <% } %>
+        </div>
+    </div>
+    
+    <!-- Include footer if you have one -->
+    <%- include('partials/footer') %>
+    
+    <script>
+        // Tab switching functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Handle main tabs
+                if (this.hasAttribute('data-tab')) {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // Remove active class from all tabs and contents
+                    document.querySelectorAll('.tab[data-tab]').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    this.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                }
+                
+                // Handle subtabs
+                if (this.hasAttribute('data-subtab')) {
+                    const subtabId = this.getAttribute('data-subtab');
+                    
+                    // Remove active class from all subtabs and contents
+                    document.querySelectorAll('.tab[data-subtab]').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('#my-info .tab-content').forEach(content => content.classList.remove('active'));
+                    
+                    // Add active class to clicked subtab and corresponding content
+                    this.classList.add('active');
+                    document.getElementById(subtabId).classList.add('active');
+                }
+            });
+        });
+        
+        // Form submissions with fetch API
+        document.getElementById('update-details-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('/user/update-details', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(Object.fromEntries(formData))
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Profile details updated successfully!');
+                    window.location.reload();
+                } else {
+                    alert('Error updating profile: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating profile details.');
+            });
+        });
+        
+        document.getElementById('update-password-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            if (formData.get('newPassword') !== formData.get('confirmPassword')) {
+                alert('New passwords do not match!');
+                return;
+            }
+            
+            fetch('/user/update-password', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    oldPassword: formData.get('oldPassword'),
+                    newPassword: formData.get('newPassword')
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Password updated successfully!');
+                    this.reset();
+                } else {
+                    alert('Error updating password: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating password.');
+            });
+        });
+        
+        // Profile picture preview
+        document.getElementById('profilepic').addEventListener('change', function(e) {
+            const preview = document.getElementById('preview');
+            const file = this.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        document.getElementById('update-profilepic-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('/user/update-profilepic', {
+                method: 'PATCH',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Profile picture updated successfully!');
+                    window.location.reload();
+                } else {
+                    alert('Error updating profile picture: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating profile picture.');
+            });
+        });
+    </script>
+</body>
+</html>

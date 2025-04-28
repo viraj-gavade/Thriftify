@@ -295,6 +295,24 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     }
 })
 
+const getLoggedInUser = asyncHandler(async (req, res) => {
+    // Check if the user is authenticated
+    if (!req.user) {
+        throw new CustomApiError(401, 'Unauthorized access!')
+    }
+
+    // Fetch the logged-in user from the database
+    const user = await User.findById(req.user._id).select('-password -refreshToken')
+
+    // Throw an error if user is not found
+    if (!user) {
+        throw new CustomApiError(404, 'User not found!')
+    }
+
+    // Return the logged-in user details in the response
+    return res.status(200).json(user)
+})
+
 module.exports = {
     registerUser,
     loginUser,
