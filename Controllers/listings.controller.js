@@ -153,7 +153,7 @@ const GetUserListings = asyncHandler( async (req, res) => {
     try {
         const userId = req.user._id;
         const listings = await Listing.find({ postedBy: userId }).populate('postedBy', 'name email').sort({ createdAt: -1 });
-        return res.status(200).json(listings);
+        return res.render('userlistings', { listings: listings });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: 'Server error' });
