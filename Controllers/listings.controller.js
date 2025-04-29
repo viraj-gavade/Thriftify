@@ -78,19 +78,35 @@ const GetAllListings = asyncHandler(async (req, res) => {
 
 
 
-const GetSingleListing =asyncHandler( async (req, res) => {          
+const GetSingleListing = asyncHandler(async (req, res) => {          
     try {
         const { id } = req.params;
-        const listing = await Listing.findById(id).populate('postedBy', 'name email');
+        const listing = await Listing.findById(id).populate('postedBy', 'fullname email');
+        
         if (!listing) {
             return res.status(404).json({ message: 'Listing not found' });
         }
-        return res.status(200).render('listing', { listing: listing });
+        
+        // Check if the listing is bookmarked by the current user
+        let isBookmarked = false;
+        if (req.user) {
+            const user = await User.findById(req.user._id);
+            if (user && user.Bookmarks) {
+                isBookmarked = user.Bookmarks.includes(listing._id);
+            }
+        }
+        
+        return res.status(200).render('listing', { 
+            listing: listing,
+            isBookmarked: isBookmarked ,
+            user: req.user // Pass the user object to the template
+
+        });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: 'Server error' });
     }
-})
+});
 
 const UpdateListing = asyncHandler( async (req, res) => {
     try {
@@ -230,12 +246,48 @@ const GetUserBookmarks = asyncHandler( async (req, res) => {
 }
 )
 
+const ToggleBookmark = asyncHandler(async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { listingId } = req.body;
 
+        // Check if the listing exists
+        const listing = await Listing.findById(listingId);
+        if (!listing) {
+            return res.status(404).json({ success: false, message: 'Listing not found' });
+        }
 
+        // Find the user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
 
+        // Check if the listing is already bookmarked
+        const isBookmarked = user.Bookmarks && user.Bookmarks.includes(listing._id);
 
-
-
+        if (isBookmarked) {
+            // Remove from bookmarks
+            await User.findByIdAndUpdate(userId, { $pull: { Bookmarks: listing._id } });
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Listing removed from bookmarks',
+                isBookmarked: false
+            });
+        } else {
+            // Add to bookmarks
+            await User.findByIdAndUpdate(userId, { $addToSet: { Bookmarks: listing._id } });
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Listing added to bookmarks',
+                isBookmarked: true
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
 
 module.exports = { CreateListing,
     GetAllListings, 
@@ -246,5 +298,6 @@ module.exports = { CreateListing,
     GetUserListingById,
     AddToBookmarks,
     RemoveFromBookmarks,
-    GetUserBookmarks
+    GetUserBookmarks,
+    ToggleBookmark
  };

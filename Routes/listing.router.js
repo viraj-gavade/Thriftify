@@ -14,7 +14,8 @@ const { CreateListing ,
     GetUserBookmarks
  } = require('../Controllers/listings.controller');
 const VerifyJwt = require('../Middlewares/authentication.middleware');
-
+const { verify } = require('jsonwebtoken');
+const listingsController = require('../Controllers/listings.controller');
 // Upload up to 5 images using the 'images' field
 Listingrouter.post('/listings', VerifyJwt, upload.array('images', 5), CreateListing);
 
@@ -104,7 +105,7 @@ Listingrouter.get('/listings/search', async (req, res) => {
 Listingrouter.get('/user/bookmarks', VerifyJwt, GetUserBookmarks);
 
 // Get a single listing by ID
-Listingrouter.get('/listings/:id', GetSingleListing);
+Listingrouter.get('/listings/:id',VerifyJwt, GetSingleListing);
 
 // Update a listing by ID
 Listingrouter.patch('/listings/:id', VerifyJwt, upload.array('images', 5), UpdateListing);
@@ -187,4 +188,5 @@ Listingrouter.get('/category/:category', async (req, res) => {
     }
 });
 
+Listingrouter.post('/bookmarks/toggle', VerifyJwt, listingsController.ToggleBookmark);
 module.exports = Listingrouter;

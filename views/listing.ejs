@@ -341,10 +341,11 @@
                    onclick="<%= !listing.isSold ? 'event.preventDefault(); placeOrder();' : '' %>">
                     <i class="fas fa-shopping-cart"></i> Place Order
                 </a>
-                <a href="/api/v1/bookmarks/toggle/<%= listing._id %>" id="bookmarkBtn" 
-                   class="action-link secondary-link"
+                <a href="#" id="bookmarkBtn" 
+                   class="action-link secondary-link <%= typeof isBookmarked !== 'undefined' && isBookmarked ? 'secondary-link-active' : '' %>"
                    onclick="event.preventDefault(); bookmarkListing();">
-                    <i class="far fa-bookmark"></i> Bookmark
+                    <i class="<%= typeof isBookmarked !== 'undefined' && isBookmarked ? 'fas' : 'far' %> fa-bookmark"></i> 
+                    <%= typeof isBookmarked !== 'undefined' && isBookmarked ? 'Bookmarked' : 'Bookmark' %>
                 </a>
                 <a href="/" class="action-link tertiary-link">
                     <i class="fas fa-arrow-left"></i> Back to Listings
@@ -366,6 +367,9 @@
 <script>
     const images = <%- JSON.stringify(listing.images || []) %>;
     let currentImageIndex = 0;
+    
+    // Check if isBookmarked is defined and set it properly
+    let isBookmarked = <%= typeof isBookmarked !== 'undefined' ? isBookmarked : false %>;
 
     function showImage(index) {
         currentImageIndex = index;
@@ -412,21 +416,29 @@
         bookmarkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         bookmarkBtn.disabled = true;
         
-        // Send an API request to bookmark the listing
-        fetch(`/api/v1/bookmarks/toggle/<%= listing._id %>`, {
+        // Send an API request to toggle bookmark the listing
+        fetch(`/api/v1/bookmarks/toggle`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ listingId: '<%= listing._id %>' })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 // Re-enable button
                 bookmarkBtn.disabled = false;
                 
-                // Check the current state after toggling
+                // Update the isBookmarked variable
+                isBookmarked = data.isBookmarked;
+                
+                // Update the button appearance based on bookmark status
                 if (data.isBookmarked) {
                     bookmarkBtn.innerHTML = '<i class="fas fa-bookmark"></i> Bookmarked';
                     bookmarkBtn.classList.add('secondary-link-active');
@@ -435,7 +447,7 @@
                     bookmarkBtn.classList.remove('secondary-link-active');
                 }
                 
-                // Optional: Show a small notification
+                // Show a small notification
                 const notification = document.createElement('div');
                 notification.className = 'bookmark-notification';
                 notification.textContent = data.isBookmarked ? 'Added to bookmarks!' : 'Removed from bookmarks!';
@@ -449,16 +461,20 @@
             } else {
                 // If there was an error, reset the button
                 bookmarkBtn.disabled = false;
-                bookmarkBtn.innerHTML = '<i class="far fa-bookmark"></i> Bookmark';
-                alert('Failed to bookmark the listing: ' + (data.message || 'Unknown error'));
+                bookmarkBtn.innerHTML = isBookmarked ? 
+                    '<i class="fas fa-bookmark"></i> Bookmarked' : 
+                    '<i class="far fa-bookmark"></i> Bookmark';
+                alert('Failed to update bookmark: ' + (data.message || 'Unknown error'));
             }
         })
         .catch(error => {
-            console.error('Error bookmarking the listing:', error);
-            // Reset the button on error
+            console.error('Error toggling bookmark:', error);
+            // Reset the button on error based on current state
             bookmarkBtn.disabled = false;
-            bookmarkBtn.innerHTML = '<i class="far fa-bookmark"></i> Bookmark';
-            alert('Error bookmarking the listing. Please try again.');
+            bookmarkBtn.innerHTML = isBookmarked ? 
+                '<i class="fas fa-bookmark"></i> Bookmarked' : 
+                '<i class="far fa-bookmark"></i> Bookmark';
+            alert('Error updating bookmark status. Please try again.');
         });
     }
     
