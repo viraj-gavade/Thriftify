@@ -61,7 +61,7 @@ app.use((req, res, next) => {
 app.get('/', asyncHandler(async(req, res) => {
   try {
     // Get authentication token and set user in locals for template
-    const token = req.cookies.token;
+    const token = req.cookies.accessToken;
     if (token) {
       try {
         const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);

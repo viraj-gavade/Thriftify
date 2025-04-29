@@ -95,18 +95,18 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
     console.log(req.body)
-    // Destructure request body to get email, password, and username
-    const { email, password, username } = req.body
-    
+    // Destructure request body to get identifier and password
+    const { identifier, password } = req.body
+    console.log('identifier', identifier)  
 
-    // Check if email and password are provided
-    if ((!email ||!username) && !password) {
+    // Check if identifier and password are provided
+    if (!identifier || !password) {
         throw new CustomApiError(400, 'Please provide all the required fields')
     }
 
-    // Find the user by email or username
+    // Find the user by email or username using the identifier
     const user = await User.findOne({
-        $or: [{ email }, { username }]
+        $or: [{ email: identifier }, { username: identifier }]
     })
 
     // Throw an error if user is not found
