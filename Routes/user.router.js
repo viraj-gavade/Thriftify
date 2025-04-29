@@ -34,8 +34,9 @@ UserRouter.route('/profile')
     .get(VerifyJwt, async (req, res) => {
         try {
             // Get user data from req.user set by VerifyJwt middleware
-            const user = await req.user.populate(['listings', 'orders']);
+            const user = await req.user.populate(['listings', 'orders', 'Bookmarks']);
             console.log(user.orders);
+            console.log('Bookmarks',user.Bookmarks);
             res.render('profile', { user: user, listings: user.listings, orders: user.orders });
         } catch (error) {
             console.error('Error fetching profile:', error);

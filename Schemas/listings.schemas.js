@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-
 const ListingSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -36,7 +35,10 @@ const ListingSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
-   
+    bookmarkedBy: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
     createdAt: {
         type: Date,
         default: Date.now,
@@ -51,6 +53,10 @@ const ListingSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
+// Add a method to check if a user has bookmarked this listing
+ListingSchema.methods.isBookmarkedBy = function(userId) {
+    return this.bookmarkedBy.includes(userId);
+};
 
 const ListingModel = mongoose.model('Listing', ListingSchema);
 module.exports = ListingModel;

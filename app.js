@@ -15,6 +15,7 @@ const ListingRouter = require('./Routes/listing.router');
 const OrderRouter = require('./Routes/orders.router');
 const ChatRouter = require('./Routes/chat.router'); // New
 const asyncHandler = require('./utils/asynchandler');
+const bookmarkRoutes = require('./Routes/bookmark.router'); // Corrected capitalization
 
 // Initialize app and server
 const app = express();
@@ -103,6 +104,7 @@ app.get('/', asyncHandler(async(req, res) => {
 app.use('/api/v1/user', UserRouter);
 app.use('/api/v1/', ListingRouter);
 app.use('/api/v1/', OrderRouter);
+app.use('/api/v1/bookmarks', bookmarkRoutes); // Use routes
 
 // Chat route to load the chat page
 app.get('/api/v1/chat', (req, res) => {
@@ -156,25 +158,10 @@ app.get('/payment-success', (req, res) => {
   res.status(200).render('home.ejs');
 });
 
-// PayPal payment callback routes
-app.get('/payment-success', (req, res) => {
-  res.render('payment-success');
-});
 
-app.get('/payment-cancel', (req, res) => {
-  res.render('payment-cancel', { message: 'Payment was cancelled. Your order has not been processed.' });
-});
 
-// PayPal success/cancel callback routes
-app.get('/payment-success', (req, res) => {
-  // Render the payment success page
-  res.render('payment-success');
-});
 
-app.get('/payment-cancel', (req, res) => {
-  // Render the payment cancel page
-  res.render('payment-cancel', { message: 'Your payment was cancelled. The order has not been processed.' });
-});
+
 
 // Authentication routes to serve login and signup pages
 app.get('/login', (req, res) => {

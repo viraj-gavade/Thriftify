@@ -253,7 +253,7 @@
             <% if (listings && listings.length > 0) { %>
                 <% listings.forEach(listing => { %>
                     <div class="listing-card">
-                        <a href="/listings/<%= listing._id %>">
+                        <a href="/api/v1/listings/<%= listing._id %>">
                             <img src="<%= listing.images && listing.images.length > 0 ? listing.images[0] : '/images/default-listing.png' %>" alt="<%= listing.title %>" class="listing-image">
                         </a>
                         <div class="listing-details">
