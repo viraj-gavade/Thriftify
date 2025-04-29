@@ -89,10 +89,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // Redirect the user to the signup confirmation page
-    return res.status(201).json({
-        status: 'success',
-        message: 'User created successfully',
-        user: createdUser})
+    return res.status(201).redirect('/api/v1/user/login')
 })
 
 
@@ -132,31 +129,52 @@ const loginUser = asyncHandler(async (req, res) => {
     // Cookie options for secure and HTTP-only cookies
     const options = {
         httpOnly: true,
-        secure: true
-    }
+        secure: true,
+        sameSite: 'Strict'
+    };
 
     // Send the generated tokens in cookies and redirect to home page
     return res.status(200)
-        .cookie('token', accessToken, options)
+        .cookie('accessToken', accessToken, options)
         .cookie('refreshToken', refreshToken, options)
         .redirect('/');
 })
 
 // Async handler to manage user logout functionality
 const logoutUser = asyncHandler(async (req, res) => {
-    // Cookie options to clear the cookies securely
-    const options = {
-        httpOnly: true,
-        secure: true
+    try {
+        // Clear the refresh token in the database if the user is logged in
+        if (req.user?._id) {
+            await User.findByIdAndUpdate(
+                req.user._id,
+                {
+                    $set: { refreshToken: null }
+                },
+                { new: true }
+            );
+        }
+        
+        // Set cookie options - must match the options used when setting cookies
+        const options = {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'Strict',
+            path: '/',
+            domain: req.hostname.includes('localhost') ? 'localhost' : req.hostname
+        };
+        
+        // Clear cookies and redirect
+        return res.status(200)
+            .clearCookie('token', options)
+            .clearCookie('refreshToken', options)
+            .redirect('/');
+    } catch (error) {
+        console.error("Logout error:", error);
+        throw new CustomApiError(500, 'Something went wrong during logout');
     }
+});
 
-    // Clear tokens and redirect to home page
-    return res.status(200)
-        .clearCookie('token', options)
-        .clearCookie('refreshToken', options)
-        .redirect('/');
-})
-
+    
 const getUser = asyncHandler(async (req, res) => {
     // Fetch the user ID from the request parameters
     const { id } = req.params
@@ -168,18 +186,14 @@ const getUser = asyncHandler(async (req, res) => {
     }
     // Return the user details in the response
     return res.status(200).json(user)
-    })
-
+})
 
 const UpdateDetails = asyncHandler(async (req, res) => {
     if(!req.user){
         throw new CustomApiError(401, 'Unauthorized access!')
     }
     const { id } = req.user
-
     const Finduser = await User.findById(id).select('-password -refreshToken')
-
-    // console.log(id)
     if (!Finduser) {
         throw new CustomApiError(404, 'User not found!')
     }
@@ -191,51 +205,42 @@ const UpdateDetails = asyncHandler(async (req, res) => {
     }
     if (checkEmail.length > 0) {
         throw new CustomApiError(409, 'Email already taken!')
-        }
-
-
+    }
     // Update user details in the database
     const updatedUser = await User.findByIdAndUpdate(id, { fullname, username, email }, { new: true, runValidators: true }).select('-password -refreshToken')
     // Throw an error if user update fails
     if (!updatedUser) {
         throw new CustomApiError(500, 'Server was unable to update the user please try again later!')
-        }
+    }
     // Return the updated user details in the response
     return res.status(200).json({
         status: 'success',
         message: 'User updated successfully',
         user: updatedUser
-        })
-    }
- 
-   
-)
+    })
+})
 
 const UpdateProfilePic = asyncHandler(async (req, res) => {
     if(!req.user){
         throw new CustomApiError(401, 'Unauthorized access!')
     }
-    const { id } = req.user 
+    const { id } = req.user
     const Finduser = await User.findById(id).select('-password -refreshToken')
     if (!Finduser) {
         throw new CustomApiError(404, 'User not found!')
     }
-       // Check if the profilepic file was uploaded, and throw an error if not
-       const profilepicLocalpath = req.files?.profilepic[0]?.path
+    // Check if the profilepic file was uploaded, and throw an error if not
+    const profilepicLocalpath = req.files?.profilepic[0]?.path
     
-       if (profilepicLocalpath === undefined) {
-           throw new CustomApiError(404, 'profilepic must be uploaded!')
-       }
-   
-       // Upload avatar and cover image to Cloudinary
-       const profilepic = await uploadFile(profilepicLocalpath)
-       
-   
-       // Validate if avatar upload was successful
-       if (!profilepic) {
-           throw new CustomApiError(400, 'Avatar file is required')
-       }
-
+    if (profilepicLocalpath === undefined) {
+        throw new CustomApiError(404, 'profilepic must be uploaded!')
+    }
+    // Upload avatar and cover image to Cloudinary
+    const profilepic = await uploadFile(profilepicLocalpath)
+    // Validate if avatar upload was successful
+    if (!profilepic) {
+        throw new CustomApiError(400, 'Avatar file is required')
+    }
     // Update user profile picture in the database
     const updatedUser = await User.findByIdAndUpdate(id, { profilepic: profilepic.url }, { new: true, runValidators: true }).select('-password -refreshToken')
     // Throw an error if user update fails
@@ -247,9 +252,7 @@ const UpdateProfilePic = asyncHandler(async (req, res) => {
         status: 'success',
         message: 'User updated successfully',
         user: updatedUser
-        })
-
-   
+    })
 })
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
@@ -257,7 +260,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         // Check if the user is authenticated
         if (!req.user) {
             throw new CustomApiError(401, 'Unauthorized access!')
-            }
+        }
         // Destructure new and old password from request body
         const { oldPassword, newPassword, confirm_password } = req.body
 
@@ -320,5 +323,6 @@ module.exports = {
     getUser,
     UpdateDetails,
     UpdateProfilePic,
-    changeCurrentPassword
+    changeCurrentPassword,
+    getLoggedInUser
 }

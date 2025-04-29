@@ -88,7 +88,8 @@ UserSchema.methods.createAccestoken = async function () {
         _id: this._id,
         username: this.username,
         fullname: this.fullname,
-        email: this.email
+        email: this.email,
+        profilepic: this.profilepic
     }, process.env.ACCESS_TOKEN_SECRETE, {
         expiresIn: process.env.ACCESS_TOKEN_EXPIRY // Set the expiry time for the token
     });
@@ -97,9 +98,12 @@ UserSchema.methods.createAccestoken = async function () {
 
 // Instance method to generate a refresh token for the user
 UserSchema.methods.createRefreshtoken = async function () {
-    // Create a JWT refresh token containing user ID
+    // Create a JWT refresh token containing more user data for better identification
     const refreshToken = jwt.sign({
         _id: this._id,
+        username: this.username,
+        fullname: this.fullname,
+        email: this.email
     }, process.env.REFRESH_TOKEN_SECRETE, {
         expiresIn: process.env.REFRESH_TOKEN_EXPIRY // Set the expiry time for the refresh token
     });
