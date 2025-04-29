@@ -1,0 +1,30 @@
+async function fetchListings() {
+  // ...existing code...
+  try {
+    // First get the user's bookmarks
+    const bookmarkRes = await fetch('/api/bookmarks');
+    let userBookmarks = [];
+    if (bookmarkRes.ok) {
+      userBookmarks = await bookmarkRes.json();
+      // Make sure userBookmarks is an array
+      if (!Array.isArray(userBookmarks)) {
+        userBookmarks = userBookmarks.Bookmarks || [];
+      }
+    }
+
+    // ...existing code...
+
+    data.forEach(listing => {
+      // Check if this listing is bookmarked by the user
+      const isBookmarked = Array.isArray(userBookmarks) && 
+        userBookmarks.some(bookmark => 
+          bookmark.listingId === listing._id || bookmark._id === listing._id
+        );
+      // ...rest of the code...
+    });
+    
+    // ...existing code...
+  } catch (error) {
+    // ...existing code...
+  }
+}
