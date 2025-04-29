@@ -394,7 +394,8 @@
                 },
                 body: JSON.stringify({
                     oldPassword: formData.get('oldPassword'),
-                    newPassword: formData.get('newPassword')
+                    newPassword: formData.get('newPassword'),
+                    confirmPassword: formData.get('confirmPassword')
                 })
             })
             .then(response => response.json())

@@ -31,10 +31,10 @@ const generateAccessTokenAndRefreshToken = async (userId) => {
 
 const registerUser = asyncHandler(async (req, res) => {
     // Destructure request body to get the user input
-    const { username, email, fullname, password, confirm_password } = req.body
+    const { username, email, fullname, password, confirmPassword } = req.body
 
     // Check for empty fields and throw a custom error if any field is missing
-    if ([username, email, fullname, password, confirm_password].some((field) =>
+    if ([username, email, fullname, password, confirmPassword].some((field) =>
         field?.trim() === ''
     )) {
         throw new CustomApiError(400, 'All fields must be filled!')
@@ -65,7 +65,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // Validate password match
-    if (password !== confirm_password) {
+    if (password !== confirmPassword) {
         throw new CustomApiError(400, 'Passwords do not match')
     }
 
@@ -75,7 +75,7 @@ const registerUser = asyncHandler(async (req, res) => {
         fullname,
         email,
         username: username.toLowerCase(),
-        password: confirm_password
+        password: confirmPassword
     })
 
     // Fetch the created user without sensitive fields like password and refreshToken
@@ -192,30 +192,69 @@ const UpdateDetails = asyncHandler(async (req, res) => {
     if(!req.user){
         throw new CustomApiError(401, 'Unauthorized access!')
     }
+    
     const { id } = req.user
     const Finduser = await User.findById(id).select('-password -refreshToken')
+    
     if (!Finduser) {
         throw new CustomApiError(404, 'User not found!')
     }
+    
+    // Extract fields from request body
     const { fullname, username, email } = req.body
-    const checkUsername = await User.find({ username })
-    const checkEmail = await User.find({ email })
-    if (checkUsername.length > 0) {
-        throw new CustomApiError(409, 'Username already taken!')
+    
+    // Create an object to store fields that need to be updated
+    const updateFields = {}
+    
+    // Check and validate each field individually
+    if (fullname) {
+        updateFields.fullname = fullname
     }
-    if (checkEmail.length > 0) {
-        throw new CustomApiError(409, 'Email already taken!')
+    
+    if (username) {
+        // Check if username is already taken
+        const checkUsername = await User.findOne({ username, _id: { $ne: id } })
+        if (checkUsername) {
+            throw new CustomApiError(409, 'Username already taken!')
+        }
+        updateFields.username = username
     }
-    // Update user details in the database
-    const updatedUser = await User.findByIdAndUpdate(id, { fullname, username, email }, { new: true, runValidators: true }).select('-password -refreshToken')
+    
+    if (email) {
+        // Check if email is already taken
+        const checkEmail = await User.findOne({ email, _id: { $ne: id } })
+        if (checkEmail) {
+            throw new CustomApiError(409, 'Email already taken!')
+        }
+        updateFields.email = email
+    }
+    
+    // Check if there are any fields to update
+    if (Object.keys(updateFields).length === 0) {
+        return res.status(200).json({
+            status: 'success',
+            message: 'No fields provided for update',
+            user: Finduser
+        })
+    }
+    
+    // Update user details in the database with only the provided fields
+    const updatedUser = await User.findByIdAndUpdate(
+        id, 
+        updateFields, 
+        { new: true, runValidators: true }
+    ).select('-password -refreshToken')
+    
     // Throw an error if user update fails
     if (!updatedUser) {
         throw new CustomApiError(500, 'Server was unable to update the user please try again later!')
     }
+    
     // Return the updated user details in the response
     return res.status(200).json({
         status: 'success',
         message: 'User updated successfully',
+        updatedFields: Object.keys(updateFields),
         user: updatedUser
     })
 })
@@ -262,10 +301,13 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
             throw new CustomApiError(401, 'Unauthorized access!')
         }
         // Destructure new and old password from request body
-        const { oldPassword, newPassword, confirm_password } = req.body
-
+        const { oldPassword, newPassword, confirmPassword } = req.body
+        console.log('Old Password', oldPassword)
+        console.log('New Password', newPassword)
+        console.log('Confirm Password', confirmPassword)
+        console.log('Body', req.body)
         // Find the user using the logged-in user's ID
-        const user = await User.findById(req.user._id).select('-password -refreshToken')
+        const user = await User.findById(req.user._id).select(' -refreshToken')
 
         // Check if the provided old password matches the stored password
         const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
@@ -274,7 +316,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         }
 
         // Validate if new password matches the confirm password
-        if (newPassword !== confirm_password) {
+        if (newPassword !== confirmPassword) {
             throw new CustomApiError(401, 'The new password and confirm password you have entered are not the same!')
         }
 
