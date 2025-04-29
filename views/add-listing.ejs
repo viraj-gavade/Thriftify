@@ -1,59 +1,103 @@
 <%- include('./partials/header') %>
 
-<div class="container mt-5">
+<div class="container my-5">
   <div class="row justify-content-center">
-    <div class="col-md-8">
-      <div class="card shadow">
-        <div class="card-header bg-primary text-white">
-          <h3 class="mb-0">Add New Listing</h3>
+    <div class="col-lg-9">
+      <div class="card shadow-lg border-0 rounded-3 overflow-hidden">
+        <div class="card-header bg-gradient text-white position-relative py-4" style="background: linear-gradient(135deg, #3a8ffe 0%, #0052cc 100%);">
+          <h2 class="mb-0 text-center fw-bold">Create New Listing</h2>
+          <p class="text-center mb-0 text-white-50">Share your items with the Thriftify community</p>
         </div>
-        <div class="card-body">
+        
+        <div class="card-body p-4 p-md-5">
           <form id="listingForm" enctype="multipart/form-data">
-            <div class="mb-3">
-              <label for="title" class="form-label">Title</label>
-              <input type="text" class="form-control" id="title" name="title" required>
-            </div>
-            
-            <div class="mb-3">
-              <label for="description" class="form-label">Description</label>
-              <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
-            </div>
-            
-            <div class="mb-3">
-              <label for="price" class="form-label">Price (£)</label>
-              <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" required>
-            </div>
-            
-            <div class="mb-3">
-              <label for="category" class="form-label">Category</label>
-              <select class="form-select" id="category" name="category" required>
-                <option value="" selected disabled>Select a category</option>
-                <option value="electronics">Electronics</option>
-                <option value="furniture">Furniture</option>
-                <option value="clothing">Clothing</option>
-                <option value="books">Books</option>
-                <option value="others">Others</option>
-              </select>
-            </div>
-            
-            <div class="mb-3">
-              <label for="location" class="form-label">Location</label>
-              <input type="text" class="form-control" id="location" name="location" required>
-            </div>
-            
-            <div class="mb-3">
-              <label for="images" class="form-label">Images (Maximum 5)</label>
-              <div class="input-group mb-3">
-                <input type="file" class="form-control" id="images" name="images" multiple accept="image/*" required>
-                <label class="input-group-text" for="images">Upload</label>
+            <!-- Basic Information Section -->
+            <div class="mb-4 pb-2 border-bottom">
+              <h4 class="section-title"><i class="bi bi-info-circle me-2"></i>Basic Information</h4>
+              
+              <div class="mb-3">
+                <label for="title" class="form-label fw-bold">Title <span class="text-danger">*</span></label>
+                <input type="text" class="form-control form-control-lg shadow-sm" id="title" name="title" placeholder="What are you selling?" required>
               </div>
-              <div class="form-text">You can upload up to 5 images. Supported formats: JPG, PNG, GIF</div>
-              <div id="imagePreview" class="mt-2 d-flex flex-wrap gap-2"></div>
+              
+              <div class="mb-3">
+                <label for="description" class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                <textarea class="form-control shadow-sm" id="description" name="description" rows="4" placeholder="Describe your item in detail. Include condition, features, etc." required></textarea>
+                <div class="form-text">Be detailed and honest about the condition of your item.</div>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="price" class="form-label fw-bold">Price (₹) <span class="text-danger">*</span></label>
+                  <div class="input-group shadow-sm">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" class="form-control form-control-lg" id="price" name="price" min="0" step="0.01" placeholder="0.00" required>
+                  </div>
+                </div>
+                
+                <div class="col-md-6">
+                  <label for="category" class="form-label fw-bold">Category <span class="text-danger">*</span></label>
+                  <select class="form-select form-select-lg shadow-sm" id="category" name="category" required>
+                    <option value="" selected disabled>Select a category</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="clothing">Clothing & Fashion</option>
+                    <option value="furniture">Furniture & Home Decor</option>
+                    <option value="books">Books & Media</option>
+                    <option value="hobbies">Hobbies & Collectibles</option>
+                    <option value="sports">Sports & Outdoors</option>
+                    <option value="beauty">Beauty & Personal Care</option>
+                    <option value="others">Others</option>
+                  </select>
+                </div>
+              </div>
             </div>
             
+            <!-- Location Section -->
+            <div class="mb-4 pb-2 border-bottom">
+              <h4 class="section-title"><i class="bi bi-geo-alt me-2"></i>Location Details</h4>
+              
+              <div class="mb-3">
+                <label for="location" class="form-label fw-bold">Location <span class="text-danger">*</span></label>
+                <div class="input-group shadow-sm">
+                  <span class="input-group-text"><i class="bi bi-pin-map"></i></span>
+                  <input type="text" class="form-control form-control-lg" id="location" name="location" placeholder="City, State" required>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Images Section -->
+            <div class="mb-4">
+              <h4 class="section-title"><i class="bi bi-images me-2"></i>Upload Images</h4>
+              
+              <div class="image-upload-container p-4 mb-3 bg-light rounded border text-center position-relative">
+                <input type="file" class="form-control visually-hidden" id="images" name="images" multiple accept="image/*" required>
+                <label for="images" class="btn btn-outline-primary btn-lg d-inline-flex align-items-center mb-3">
+                  <i class="bi bi-cloud-arrow-up me-2"></i> Choose Photos
+                </label>
+                <p class="mb-0 text-muted small">Drag photos here or click to browse</p>
+                <p class="text-muted small mb-0">Add up to 5 photos. First image will be the cover (max 5MB each)</p>
+                <hr>
+                <div id="imagePreview" class="d-flex flex-wrap justify-content-center gap-3 mt-3"></div>
+              </div>
+              
+              <div class="image-tips bg-light p-3 rounded mb-4 small">
+                <h6><i class="bi bi-lightbulb me-2 text-warning"></i>Tips for great photos:</h6>
+                <ul class="mb-0">
+                  <li>Use good lighting</li>
+                  <li>Show the item from multiple angles</li>
+                  <li>Include photos of any defects or wear</li>
+                  <li>Use a neutral background</li>
+                </ul>
+              </div>
+            </div>
+            
+            <!-- Submit Button -->
             <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-primary btn-lg">
-                <i class="bi bi-plus-circle me-2"></i>Create Listing
+              <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold">
+                <i class="bi bi-plus-circle-fill me-2"></i>Publish Listing
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
+                Cancel
               </button>
             </div>
           </form>
@@ -65,7 +109,7 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Image preview functionality
+    // Image preview functionality with improved UI
     const imageInput = document.getElementById('images');
     const imagePreview = document.getElementById('imagePreview');
     
@@ -77,22 +121,72 @@
         return;
       }
       
-      Array.from(this.files).forEach(file => {
+      Array.from(this.files).forEach((file, index) => {
         const reader = new FileReader();
         reader.onload = function(e) {
+          const imgContainer = document.createElement('div');
+          imgContainer.className = 'position-relative';
+          
           const img = document.createElement('img');
           img.src = e.target.result;
-          img.style.width = '100px';
-          img.style.height = '100px';
+          img.style.width = '150px';
+          img.style.height = '150px';
           img.style.objectFit = 'cover';
-          img.className = 'border rounded';
-          imagePreview.appendChild(img);
+          img.className = 'shadow-sm rounded border';
+          
+          const badge = document.createElement('span');
+          badge.className = 'position-absolute top-0 start-0 badge rounded-pill bg-primary m-2';
+          badge.innerHTML = index === 0 ? 'Cover' : `#${index + 1}`;
+          
+          imgContainer.appendChild(img);
+          imgContainer.appendChild(badge);
+          imagePreview.appendChild(imgContainer);
         }
         reader.readAsDataURL(file);
       });
     });
     
-    // Form submission
+    // Add drag and drop functionality for images
+    const dropZone = document.querySelector('.image-upload-container');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+      dropZone.classList.add('border-primary', 'bg-light');
+    }
+    
+    function unhighlight() {
+      dropZone.classList.remove('border-primary', 'bg-light');
+    }
+    
+    dropZone.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      imageInput.files = files;
+      
+      // Trigger change event manually
+      const event = new Event('change');
+      imageInput.dispatchEvent(event);
+    }
+    
+    // Form submission - unchanged
     const listingForm = document.getElementById('listingForm');
     
     listingForm.addEventListener('submit', async function(e) {
@@ -129,5 +223,112 @@
     });
   });
 </script>
+
+<style>
+  .section-title {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 1.2rem;
+  }
+  
+  .image-upload-container {
+    border: 2px dashed #ccc;
+    transition: all 0.3s ease;
+  }
+  
+  .image-upload-container:hover {
+    border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.05) !important;
+  }
+  
+  .form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+  
+  /* Adding a slight animation for buttons */
+  .btn {
+    transition: all 0.3s ease;
+  }
+  
+  .btn:hover {
+    transform: translateY(-2px);
+  }
+  
+  /* Improved spacing styles */
+  .card-body {
+    padding: 2.5rem !important;
+  }
+  
+  .mb-3 {
+    margin-bottom: 1.5rem !important;
+  }
+  
+  .mb-4 {
+    margin-bottom: 2.5rem !important;
+  }
+  
+  .pb-2 {
+    padding-bottom: 1.5rem !important;
+  }
+  
+  .form-label {
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+  
+  .section-title {
+    margin-top: 1rem;
+    margin-bottom: 1.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  /* Add space between form sections */
+  .border-bottom {
+    border-bottom: 1px solid #e9ecef !important;
+    margin-bottom: 2rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+  
+  /* Add space in the row layout */
+  .row {
+    margin-bottom: 1rem;
+  }
+  
+  .row > [class^="col-"] {
+    margin-bottom: 1.25rem;
+  }
+  
+  /* Add space for the submit button section */
+  .d-grid {
+    margin-top: 2.5rem;
+  }
+  
+  .d-grid .btn {
+    margin-bottom: 1rem;
+  }
+  
+  /* Improve the spacing in image preview */
+  #imagePreview {
+    gap: 1rem !important;
+    margin-top: 1.5rem !important;
+  }
+  
+  /* Add breathing room to the tips section */
+  .image-tips {
+    padding: 1.5rem !important;
+    margin: 1.5rem 0 2rem 0 !important;
+  }
+  
+  .image-tips ul {
+    padding-left: 1.5rem;
+    margin-top: 0.75rem;
+  }
+  
+  .image-tips li {
+    margin-bottom: 0.5rem;
+  }
+</style>
 
 <%- include('./partials/footer') %>
