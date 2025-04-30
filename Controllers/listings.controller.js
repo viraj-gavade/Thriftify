@@ -115,6 +115,7 @@ const UpdateListing = asyncHandler( async (req, res) => {
         if (!listing) {
             return res.status(404).json({ message: 'Listing not found' });
         }
+        
         if (listing.postedBy.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'You are not authorized to update this listing' });
         }
@@ -122,10 +123,34 @@ const UpdateListing = asyncHandler( async (req, res) => {
         const { id } = req.params;
         const { title, description, price, category, location } = req.body;
 
+        // Handle file uploads if any
+        let imageUrls = listing.images; // Keep existing images by default
+        
+        if (req.files && req.files.length > 0) {
+            // Upload new images
+            const imageUploadPromises = req.files.map(file => uploadFile(file.path));
+            const uploadedImages = await Promise.all(imageUploadPromises);
+            imageUrls = uploadedImages.map(img => img.secure_url);
+            
+            // Clean up temp files after upload
+            req.files.forEach(file => {
+                fs.unlink(path.join(__dirname, '..', file.path), err => {
+                    if (err) console.error(`Error deleting temp file ${file.path}:`, err);
+                });
+            });
+        }
+
         // Find the listing by ID and update it
         const updatedListing = await Listing.findByIdAndUpdate(
             id,
-            { title, description, price, category, location },
+            { 
+                title, 
+                description, 
+                price, 
+                category, 
+                location,
+                ...(req.files && req.files.length > 0 ? { images: imageUrls } : {})
+            },
             { new: true }
         );
 
@@ -138,7 +163,7 @@ const UpdateListing = asyncHandler( async (req, res) => {
         console.error(error);
         return res.status(500).json({ message: 'Server error' });
     }
-})
+});
 
 const DeleteListing = asyncHandler( async (req, res) => {   
     try {
@@ -147,6 +172,7 @@ const DeleteListing = asyncHandler( async (req, res) => {
         if (!listing) {
             return res.status(404).json({ message: 'Listing not found' });
         }
+        
         if (listing.postedBy.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'You are not authorized to delete this listing' });
         }
@@ -162,8 +188,7 @@ const DeleteListing = asyncHandler( async (req, res) => {
         console.error(error);
         return res.status(500).json({ message: 'Server error' });
     }
-}
-)
+});
 
 const GetUserListings = asyncHandler( async (req, res) => {
     try {
