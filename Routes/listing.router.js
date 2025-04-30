@@ -126,12 +126,12 @@ Listingrouter.post('/user/bookmarks', VerifyJwt, AddToBookmarks);
 Listingrouter.delete('/user/bookmarks', VerifyJwt, RemoveFromBookmarks);
 
 // Default route for category page - redirects to "others" category by default
-Listingrouter.get('/category', (req, res) => {
+Listingrouter.get('/category',VerifyJwt, (req, res) => {
     res.redirect('/api/v1/category/others');
 });
 
 // Route to display listings by category
-Listingrouter.get('/category/:category', async (req, res) => {
+Listingrouter.get('/category/:category', VerifyJwt, async (req, res) => {
     try {
         const { category } = req.params;
         const validCategories = ['electronics', 'furniture', 'clothing', 'books', 'others'];
@@ -176,7 +176,8 @@ Listingrouter.get('/category/:category', async (req, res) => {
         res.render('category', {
             category,
             listings,
-            title: `${category.charAt(0).toUpperCase() + category.slice(1)} | Thriftify`
+            title: `${category.charAt(0).toUpperCase() + category.slice(1)} | Thriftify`,
+            user: req.user, // Pass the user data to the template
         });
         
     } catch (error) {
