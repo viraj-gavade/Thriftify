@@ -30,7 +30,7 @@ UserRouter.route('/login')
     .post(loginUser);
 
 // Logout route: handles user logout
-UserRouter.route('/signout').get(logoutUser);
+UserRouter.route('/logout').get(logoutUser);
 
 // User profile page route
 UserRouter.route('/profile')

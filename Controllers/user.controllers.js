@@ -96,21 +96,16 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
     console.log(req.body)
     // Destructure request body to get identifier and password
-    const { identifier, password } = req.body
-    console.log('identifier', identifier)  
+    const { email, password } = req.body
+   
 
-    // Check if identifier and password are provided
-    if (!identifier || !password) {
-        throw new CustomApiError(400, 'Please provide all the required fields')
-    }
-
-    // Find the user by email or username using the identifier
     const user = await User.findOne({
-        $or: [{ email: identifier }, { username: identifier }]
+        email: email.toLowerCase()
     })
-
+    
     // Throw an error if user is not found
     if (!user) {
+        console.log('No user found with identifier:', identifier)
         throw new CustomApiError(404, 'User not found!')
     }
 
@@ -164,8 +159,9 @@ const logoutUser = asyncHandler(async (req, res) => {
         };
         
         // Clear cookies and redirect
+        console.log('Cookies being cleared')
         return res.status(200)
-            .clearCookie('token', options)
+            .clearCookie('accessToken', options)
             .clearCookie('refreshToken', options)
             .redirect('/');
     } catch (error) {
