@@ -6,16 +6,16 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const connectdb = require('./DataBase/connect');
 const jwt = require('jsonwebtoken');
-let userSocketMap = {}; //
 const Listing = require('./Schemas/listings.schemas'); // Import the Listing model
 
 // Routers
 const UserRouter = require('./Routes/user.router');
 const ListingRouter = require('./Routes/listing.router');
 const OrderRouter = require('./Routes/orders.router');
-const ChatRouter = require('./Routes/chat.router'); // New
+const ChatRouter = require('./Routes/chat.router'); 
+const ChatViewController = require('./Routes/chat.view.router'); // Add this line
 const asyncHandler = require('./utils/asynchandler');
-const bookmarkRoutes = require('./Routes/bookmark.router'); // Corrected capitalization
+const bookmarkRoutes = require('./Routes/bookmark.router');
 
 // Initialize app and server
 const app = express();
@@ -55,6 +55,37 @@ app.use((req, res, next) => {
     res.locals.user = null;
   }
   next();
+});
+
+// Chat socket handling
+const chatHandler = require('./socket/chatHandler');
+
+// Socket.IO setup
+io.on('connection', (socket) => {
+  console.log('🟢 User connected:', socket.id);
+  
+  // Handle socket authentication with JWT
+  socket.on('authenticate', async (token) => {
+    try {
+      // Verify the token
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
+      const userId = decoded._id;
+      
+      // Set user ID on the socket object
+      socket.userId = userId;
+      console.log('User authenticated:', userId);
+      
+      // Initialize chat handler
+      chatHandler(io, socket);
+    } catch (error) {
+      console.error('Socket authentication error:', error);
+    }
+  });
+  
+  // When a user disconnects
+  socket.on('disconnect', () => {
+    console.log('🔴 User disconnected:', socket.id);
+  });
 });
 
 // Routes
@@ -101,10 +132,12 @@ app.get('/', asyncHandler(async(req, res) => {
  
 }));
 
-app.use('/api/v1/user', UserRouter);
-app.use('/api/v1/', ListingRouter);
-app.use('/api/v1/', OrderRouter);
-app.use('/api/v1/bookmarks', bookmarkRoutes); // Use routes
+app.use('/api/users', UserRouter);
+app.use('/api/listings', ListingRouter);
+app.use('/api/orders', OrderRouter);
+app.use('/api/bookmarks', bookmarkRoutes);
+app.use('/api/chat', ChatRouter);
+app.use('/chat', ChatViewController); // Add this line
 
 // Chat route to load the chat page
 app.get('/api/v1/chat', (req, res) => {
@@ -158,11 +191,6 @@ app.get('/payment-success', (req, res) => {
   res.status(200).render('home.ejs');
 });
 
-
-
-
-
-
 // Authentication routes to serve login and signup pages
 app.get('/login', (req, res) => {
   res.render('login');
@@ -183,66 +211,6 @@ app.get('/logout', (req, res) => {
     .clearCookie('refreshToken', options)
     .redirect('/');
 });
-
-// Socket.IO Real-Time Messaging
-io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
-    console.log('jwt secrete:', process.env.ACCESS_TOKEN_SECRETE);
-  
-    // Listen for user login (JWT token sent from client)
-    socket.on('user-logged-in', (token) => {
-      try {
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);// Decode JWT to get user info
-        const userId = decoded._id; // Extract userId from the JWT
-        console.log('User ID:', userId);
-
-  
-        // Store userId and socketId
-        userSocketMap[userId] = socket.id;
-        console.log('User connected:',userId, socket.id);
-      } catch (error) {
-        console.log(error);
-        console.error('Invalid token:', error);
-      }
-    });
-  
-    // Listen for a message from the Buyer or Sender
-    socket.on('send-message', (messageData) => {
-      const { senderId, receiverId, message } = messageData;
-  
-      // Find the receiver's socket ID from the map
-      const receiverSocketId = userSocketMap[receiverId];
-  
-      if (receiverSocketId) {
-        // Emit the message to the receiver's socket
-        io.to(receiverSocketId).emit('newMessage', { senderId, message });
-        console.log(`Message from ${senderId} to ${receiverId}: ${message}`);
-      } else {
-        console.log(`Receiver ${receiverId} not connected`);
-      }
-    });
-  
-    // Typing indicator
-    socket.on('typing', (userId) => {
-      const receiverId = userId === 'buyerId' ? 'senderId' : 'buyerId'; // Example of mapping
-      const receiverSocketId = userSocketMap[receiverId];
-      
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit('typing', { userId });
-      }
-    });
-  
-    // When a user disconnects
-    socket.on('disconnect', () => {
-      for (const [userId, socketId] of Object.entries(userSocketMap)) {
-        if (socketId === socket.id) {
-          delete userSocketMap[userId];
-          console.log('User disconnected:', userId);
-          break;
-        }
-      }
-    });
-  });
 
 // DB connect + server boot
 const ConnectDB = async () => {
