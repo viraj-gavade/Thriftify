@@ -1,163 +1,458 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Chat</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
+<%- include('./partials/header.ejs') %>
 
-        .chat-container {
-            background: white;
-            padding: 20px;
-            width: 400px;
-            height: 600px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-box {
-            flex: 1;
-            overflow-y: auto;
-            margin-bottom: 10px;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            max-height: 450px;
-        }
-
-        .chat-box .message {
-            padding: 10px;
-            border-radius: 5px;
-            margin: 5px 0;
-            display: flex;
-            justify-content: flex-start;
-        }
-
-        .chat-box .message.sent {
-            background-color: #cfe2ff;
-            align-self: flex-end;
-        }
-
-        .chat-box .message.received {
-            background-color: #e2e3e5;
-        }
-
-        input[type="text"] {
-            padding: 10px;
-            width: 100%;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            margin: 5px 0;
-        }
-
-        button {
-            padding: 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        button:hover {
-            background-color: #45a049;
-        }
-
-        .typing-status {
-            font-style: italic;
-            color: #888;
-            text-align: center;
-            display: none;
-        }
-
-    </style>
-</head>
-<body>
-
-    <div class="chat-container">
-        <h2>Live Chat</h2>
-        <div class="chat-box" id="chatBox"></div>
-        <div class="typing-status" id="typingStatus">Other user is typing...</div>
-        <input type="text" id="messageInput" placeholder="Type your message..." />
-        <button id="sendMessageButton">Send</button>
-    </div>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    // Function to get a cookie value by name
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) {
-            return parts.pop().split(';').shift();
-        }
-        return null; // Return null if the cookie is not found
-    }
-
-    // Get the JWT token from the cookies
-    const token = getCookie('accessToken'); // Ensure that the cookie name is correct
-    console.log('Token retrieved:', token); // This should log the token if it's correctly set
-
-    // Check if the token is available before emitting
-    if (token) {
-        const socket = io(); // Connect to the server
-        socket.emit('user-logged-in', token); // Send JWT token to the server to authenticate
+<div class="container chat-container">
+  <h1>Messages</h1>
+  
+  <div class="chat-interface">
+    <!-- Left side: User list -->
+    <div class="chat-users">
+      <div class="chat-search">
+        <input type="text" placeholder="Search users...">
+        <i class="fas fa-search"></i>
+      </div>
+      
+      <div class="users-list">
+        <!-- This would be populated dynamically -->
+        <div class="chat-user active">
+          <div class="user-avatar">
+            <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="User">
+            <span class="status-indicator online"></span>
+          </div>
+          <div class="user-info">
+            <h4>John Doe</h4>
+            <p class="last-message">Hey, is this item still available?</p>
+          </div>
+          <div class="message-time">2m</div>
+        </div>
         
-        // Handle sending a message
-        function sendMessage() {
-            const message = document.getElementById('messageInput').value;
-            const receiverId = 'receiver-user-id'; // You can dynamically set this (buyer/sender)
-            const senderId = token; // Here you can use the token as the sender's ID if it includes the user's ID
+        <div class="chat-user">
+          <div class="user-avatar">
+            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User">
+            <span class="status-indicator"></span>
+          </div>
+          <div class="user-info">
+            <h4>Jane Smith</h4>
+            <p class="last-message">I'm interested in the vintage chair</p>
+          </div>
+          <div class="message-time">1h</div>
+        </div>
+        
+        <div class="chat-user">
+          <div class="user-avatar">
+            <img src="https://randomuser.me/api/portraits/men/67.jpg" alt="User">
+            <span class="status-indicator online"></span>
+          </div>
+          <div class="user-info">
+            <h4>Mike Johnson</h4>
+            <p class="last-message">Can you lower the price?</p>
+          </div>
+          <div class="message-time">5h</div>
+        </div>
+        
+        <div class="chat-user">
+          <div class="user-avatar">
+            <img src="https://randomuser.me/api/portraits/women/33.jpg" alt="User">
+            <span class="status-indicator"></span>
+          </div>
+          <div class="user-info">
+            <h4>Sarah Williams</h4>
+            <p class="last-message">Thanks for the quick delivery!</p>
+          </div>
+          <div class="message-time">1d</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right side: Chat area -->
+    <div class="chat-area">
+      <div class="chat-header">
+        <div class="chat-user-info">
+          <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="John Doe">
+          <h3>John Doe</h3>
+        </div>
+        <div class="chat-actions">
+          <i class="fas fa-phone"></i>
+          <i class="fas fa-video"></i>
+          <i class="fas fa-info-circle"></i>
+        </div>
+      </div>
+      
+      <div class="messages-container">
+        <div class="date-divider">
+          <span>Today</span>
+        </div>
+        
+        <div class="message received">
+          <div class="message-content">
+            <p>Hi there! I'm interested in the leather jacket you posted.</p>
+          </div>
+          <div class="message-time">10:30 AM</div>
+        </div>
+        
+        <div class="message received">
+          <div class="message-content">
+            <p>Is it still available?</p>
+          </div>
+          <div class="message-time">10:31 AM</div>
+        </div>
+        
+        <div class="message sent">
+          <div class="message-content">
+            <p>Yes, it's available! Are you interested in buying it?</p>
+          </div>
+          <div class="message-time">10:33 AM</div>
+        </div>
+        
+        <div class="message received">
+          <div class="message-content">
+            <p>Great! Could you tell me more about its condition?</p>
+          </div>
+          <div class="message-time">10:35 AM</div>
+        </div>
+        
+        <div class="message sent">
+          <div class="message-content">
+            <p>Sure! It's in excellent condition. I've only worn it a few times.</p>
+            <p>No scratches or damages at all.</p>
+          </div>
+          <div class="message-time">10:36 AM</div>
+        </div>
+        
+        <div class="message received">
+          <div class="message-content">
+            <p>Sounds good! Would you consider $120 for it?</p>
+          </div>
+          <div class="message-time">10:40 AM</div>
+        </div>
+      </div>
+      
+      <div class="message-input">
+        <div class="emoji-btn">
+          <i class="far fa-smile"></i>
+        </div>
+        <input type="text" placeholder="Message...">
+        <div class="attachment-btn">
+          <i class="fas fa-paperclip"></i>
+        </div>
+        <button class="send-btn">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
-            if (message.trim()) {
-                socket.emit('send-message', { senderId, receiverId, message });
-            }
-        }
-
-        // Listen for new messages
-        socket.on('newMessage', (messageData) => {
-            const { senderId, message } = messageData;
-            console.log(`New message from ${senderId}: ${message}`);
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message', 'received');
-            messageElement.textContent = message;
-            document.getElementById('chatBox').appendChild(messageElement);
-        });
-
-        // Typing indicator
-        function typing() {
-            socket.emit('typing', { senderId: token });
-        }
-
-        socket.on('typing', (data) => {
-            console.log(`${data.senderId} is typing...`);
-            document.getElementById('typingStatus').style.display = 'block';
-        });
-
-        socket.on('stopTyping', () => {
-            document.getElementById('typingStatus').style.display = 'none';
-        });
-
-        // Add event listener to send message
-        document.getElementById('sendMessageButton').addEventListener('click', sendMessage);
-    } else {
-        console.error('Token is not available.');
+<style>
+  /* Chat page specific styles */
+  .chat-container h1 {
+    margin-bottom: 20px;
+  }
+  
+  .chat-interface {
+    display: flex;
+    height: 75vh;
+    background-color: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  }
+  
+  /* User list styles */
+  .chat-users {
+    width: 35%;
+    border-right: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .chat-search {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+  }
+  
+  .chat-search input {
+    width: 100%;
+    padding: 10px 40px 10px 15px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+  }
+  
+  .chat-search i {
+    position: absolute;
+    right: 30px;
+    top: 25px;
+    color: #aaa;
+  }
+  
+  .users-list {
+    flex: 1;
+    overflow-y: auto;
+  }
+  
+  .chat-user {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #f5f5f5;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .chat-user:hover, .chat-user.active {
+    background-color: #f5f5f5;
+  }
+  
+  .user-avatar {
+    position: relative;
+    margin-right: 15px;
+  }
+  
+  .user-avatar img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  .status-indicator {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #ccc;
+    border: 2px solid white;
+  }
+  
+  .status-indicator.online {
+    background-color: #4caf50;
+  }
+  
+  .user-info {
+    flex: 1;
+  }
+  
+  .user-info h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .last-message {
+    margin: 5px 0 0;
+    font-size: 13px;
+    color: #777;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+  }
+  
+  .message-time {
+    font-size: 12px;
+    color: #aaa;
+  }
+  
+  /* Chat area styles */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .chat-header {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .chat-user-info {
+    display: flex;
+    align-items: center;
+  }
+  
+  .chat-user-info img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+  }
+  
+  .chat-user-info h3 {
+    margin: 0;
+    font-size: 18px;
+  }
+  
+  .chat-actions {
+    display: flex;
+    gap: 20px;
+  }
+  
+  .chat-actions i {
+    font-size: 18px;
+    color: #3498db;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  
+  .chat-actions i:hover {
+    color: #2980b9;
+  }
+  
+  .messages-container {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+  }
+  
+  .date-divider {
+    text-align: center;
+    margin: 15px 0;
+    position: relative;
+  }
+  
+  .date-divider:before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 1px;
+    background: #ddd;
+    z-index: 0;
+  }
+  
+  .date-divider span {
+    background-color: #f9f9f9;
+    padding: 0 15px;
+    font-size: 14px;
+    color: #999;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .message {
+    display: flex;
+    flex-direction: column;
+    max-width: 70%;
+    margin-bottom: 15px;
+  }
+  
+  .message.sent {
+    align-self: flex-end;
+  }
+  
+  .message.received {
+    align-self: flex-start;
+  }
+  
+  .message-content {
+    padding: 10px 15px;
+    border-radius: 18px;
+    margin-bottom: 2px;
+  }
+  
+  .message.sent .message-content {
+    background-color: #3498db;
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+  
+  .message.received .message-content {
+    background-color: white;
+    color: #333;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+  
+  .message-time {
+    font-size: 11px;
+    color: #999;
+    align-self: flex-end;
+  }
+  
+  .message.sent .message-time {
+    margin-right: 5px;
+  }
+  
+  .message.received .message-time {
+    margin-left: 5px;
+  }
+  
+  .message-input {
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #eee;
+    background-color: #fff;
+  }
+  
+  .message-input input {
+    flex: 1;
+    padding: 10px 15px;
+    border-radius: 24px;
+    border: 1px solid #ddd;
+    margin: 0 10px;
+  }
+  
+  .emoji-btn, .attachment-btn {
+    font-size: 20px;
+    color: #aaa;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  
+  .emoji-btn:hover, .attachment-btn:hover {
+    color: #3498db;
+  }
+  
+  .send-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    padding: 0;
+    min-width: auto;
+  }
+  
+  .send-btn:hover {
+    background-color: #2980b9;
+  }
+  
+  /* Responsive styles */
+  @media (max-width: 768px) {
+    .chat-interface {
+      flex-direction: column;
+      height: auto;
     }
+    
+    .chat-users, .chat-area {
+      width: 100%;
+    }
+    
+    .chat-users {
+      border-right: none;
+      border-bottom: 1px solid #eee;
+      max-height: 300px;
+    }
+    
+    .messages-container {
+      max-height: 50vh;
+    }
+  }
+</style>
 
-  </script>
-
-</body>
-</html>
+<%- include('./partials/footer.ejs') %>
