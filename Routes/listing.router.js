@@ -14,10 +14,9 @@ const { CreateListing ,
     GetUserBookmarks
  } = require('../Controllers/listings.controller');
 const VerifyJwt = require('../Middlewares/authentication.middleware');
-const { verify } = require('jsonwebtoken');
 const listingsController = require('../Controllers/listings.controller');
 // Upload up to 5 images using the 'images' field
-Listingrouter.post('/listings', VerifyJwt, upload.array('images', 5), CreateListing);
+Listingrouter.post('/', VerifyJwt, upload.array('images', 5), CreateListing);
 
 // Route for rendering the add-listing page
 Listingrouter.get('/add-listing', VerifyJwt, (req, res) => {
@@ -28,7 +27,7 @@ Listingrouter.get('/add-listing', VerifyJwt, (req, res) => {
 });
 
 // Route for fetching all listings with pagination
-Listingrouter.route('/listings').get(async (req, res) => {
+Listingrouter.route('/').get(async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
@@ -61,10 +60,10 @@ Listingrouter.route('/listings').get(async (req, res) => {
 });
 
 // Get all listings with sorting options
-Listingrouter.get('/listings/sorted', GetAllListings);
+Listingrouter.get('/sorted', GetAllListings);
 
 // Search listings by keyword
-Listingrouter.get('/listings/search', async (req, res) => {
+Listingrouter.get('/search', async (req, res) => {
     try {
         const { query, category } = req.query;
         
@@ -105,13 +104,13 @@ Listingrouter.get('/listings/search', async (req, res) => {
 Listingrouter.get('/user/bookmarks', VerifyJwt, GetUserBookmarks);
 
 // Get a single listing by ID
-Listingrouter.get('/listings/:id',VerifyJwt, GetSingleListing);
+Listingrouter.get('/:id',VerifyJwt, GetSingleListing);
 
 // Update a listing by ID
-Listingrouter.patch('/listings/:id', VerifyJwt, upload.array('images', 5), UpdateListing);
+Listingrouter.patch('/:id', VerifyJwt, upload.array('images', 5), UpdateListing);
 
 // Delete a listing by ID
-Listingrouter.delete('/listings/:id', VerifyJwt, DeleteListing);
+Listingrouter.delete('/:id', VerifyJwt, DeleteListing);
 
 // Get all listings for the authenticated user
 Listingrouter.get('/user/listings', VerifyJwt, GetUserListings);
@@ -126,68 +125,7 @@ Listingrouter.post('/user/bookmarks', VerifyJwt, AddToBookmarks);
 Listingrouter.delete('/user/bookmarks', VerifyJwt, RemoveFromBookmarks);
 
 // Default route for category page - redirects to "others" category by default
-Listingrouter.get('/category',VerifyJwt, (req, res) => {
-    res.redirect('/api/v1/category/others');
-});
 
-// Route to display listings by category
-Listingrouter.get('/category/:category', VerifyJwt, async (req, res) => {
-    try {
-        const { category } = req.params;
-        const validCategories = ['electronics', 'furniture', 'clothing', 'books', 'others'];
-        
-        // Validate category
-        if (!validCategories.includes(category)) {
-            return res.redirect('/category/others'); // Redirect to others instead of showing error
-        }
-        
-        // Get query parameters for filtering
-        const { sort, min, max } = req.query;
-        
-        // Build query object
-        const query = { 
-            category,
-            isSold: false 
-        };
-        
-        // Add price range filtering if specified
-        if (min || max) {
-            query.price = {};
-            if (min) query.price.$gte = Number(min);
-            if (max) query.price.$lte = Number(max);
-        }
-        
-        // Build sort options
-        let sortOption = { createdAt: -1 }; // Default: newest first
-        
-        if (sort === 'price-low') {
-            sortOption = { price: 1 };
-        } else if (sort === 'price-high') {
-            sortOption = { price: -1 };
-        }
-        
-        // Fetch listings from database
-        const listings = await Listing.find(query)
-            .sort(sortOption)
-            .populate('postedBy', 'username')
-            .exec();
-        
-        // Render the category page with listings
-        res.render('category', {
-            category,
-            listings,
-            title: `${category.charAt(0).toUpperCase() + category.slice(1)} | Thriftify`,
-            user: req.user, // Pass the user data to the template
-        });
-        
-    } catch (error) {
-        console.error('Error fetching category listings:', error);
-        res.status(500).render('error', { 
-            message: 'Error loading category page',
-            error: { status: 500 }
-        });
-    }
-});
 
 Listingrouter.post('/bookmarks/toggle', VerifyJwt, listingsController.ToggleBookmark);
 module.exports = Listingrouter;

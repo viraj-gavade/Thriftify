@@ -35,7 +35,11 @@
                                 <% } %>
                                 <span class="badge bg-secondary"><%= listing.category %></span>
                             </div>
-                            <a href="/api/v1/listings/<%= listing._id %>" class="btn btn-primary mt-auto">View Details</a>
+                            <div class="mt-auto btn-group d-flex">
+                                <a href="/api/v1/listings/<%= listing._id %>" class="btn btn-primary btn-sm">View Details</a>
+                                
+                                
+                            </div>
                         </div>
                         <div class="card-footer">
                             <small class="text-muted">Bookmarked on <%= new Date(listing.createdAt).toLocaleDateString() %></small>

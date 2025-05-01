@@ -417,7 +417,7 @@
         bookmarkBtn.disabled = true;
         
         // Send an API request to toggle bookmark the listing
-        fetch(`/api/v1/bookmarks/toggle`, {
+        fetch(`/api/v1/bookmarks/toggle/<%= listing._id %>`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -465,6 +465,7 @@
                     '<i class="fas fa-bookmark"></i> Bookmarked' : 
                     '<i class="far fa-bookmark"></i> Bookmark';
                 alert('Failed to update bookmark: ' + (data.message || 'Unknown error'));
+                window.location.href = `/api/v1/listings/<%= listing._id %>`; // Reload the page to reflect the correct state
             }
         })
         .catch(error => {

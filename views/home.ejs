@@ -807,7 +807,7 @@
         button.disabled = true;
         
         // Send an API request to toggle bookmark the listing
-        const response = await fetch(`/api/v1/bookmarks/toggle`, {
+        const response = await fetch(`/api/v1/bookmarks/toggle/${listingId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -853,6 +853,7 @@
                 '<i class="fas fa-bookmark"></i> Bookmarked' : 
                 '<i class="far fa-bookmark"></i> Bookmark';
             alert('Failed to update bookmark: ' + (data.message || 'Unknown error'));
+            window.location.href = '/'; // Redirect to login if not authenticated
         }
       } catch (error) {
         console.error('Error toggling bookmark:', error);
@@ -862,8 +863,7 @@
         const isCurrentlyBookmarked = button.classList.contains('bookmarked');
         button.innerHTML = isCurrentlyBookmarked ? 
             '<i class="fas fa-bookmark"></i> Bookmarked' : 
-            '<i class="far fa-bookmark"></i> Bookmark';
-        
+            '<i class="far fa-bookmark"></i> Bookmark';        
         // Check if it's an authentication error
         if (error.message.includes('401') || error.message.includes('auth')) {
             alert('Please log in to bookmark items');

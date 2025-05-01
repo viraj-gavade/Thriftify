@@ -15,7 +15,12 @@ const OrderRouter = require('./Routes/orders.router');
 const ChatRouter = require('./Routes/chat.router'); 
 const ChatViewController = require('./Routes/chat.view.router'); // Add this line
 const asyncHandler = require('./utils/asynchandler');
+const VerifyJwt = require('./Middlewares/authentication.middleware');
 const bookmarkRoutes = require('./Routes/bookmark.router');
+
+// Import routes
+const listingsRoutes = require('./Routes/listing.router');
+const chatRoutes = require('./Routes/chat.router');
 
 // Initialize app and server
 const app = express();
@@ -59,6 +64,7 @@ app.use((req, res, next) => {
 
 // Chat socket handling
 const chatHandler = require('./socket/chatHandler');
+const CategoryRouter = require('./Routes/category.router');
 
 // Socket.IO setup
 io.on('connection', (socket) => {
@@ -132,12 +138,16 @@ app.get('/', asyncHandler(async(req, res) => {
  
 }));
 
-app.use('/api/users', UserRouter);
-app.use('/api/listings', ListingRouter);
-app.use('/api/orders', OrderRouter);
-app.use('/api/bookmarks', bookmarkRoutes);
+app.use('/api/v1/user', UserRouter);
+app.use('/api/v1/listings', ListingRouter);
+app.use('/api/v1/orders', OrderRouter);
+app.use('/api/v1/bookmarks', bookmarkRoutes);
 app.use('/api/chat', ChatRouter);
 app.use('/chat', ChatViewController); // Add this line
+app.use('/api/v1/category', CategoryRouter); // Add this line
+
+// Register routes
+
 
 // Chat route to load the chat page
 app.get('/api/v1/chat', (req, res) => {
