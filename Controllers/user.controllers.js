@@ -32,6 +32,7 @@ const generateAccessTokenAndRefreshToken = async (userId) => {
 const registerUser = asyncHandler(async (req, res) => {
     // Destructure request body to get the user input
     const { username, email, fullname, password, confirmPassword } = req.body
+    console.log(req.body)
 
     // Check for empty fields and throw a custom error if any field is missing
     if ([username, email, fullname, password, confirmPassword].some((field) =>

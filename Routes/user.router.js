@@ -1,5 +1,5 @@
 const express = require('express');
-
+const User = require('../Schemas/user.schemas'); // Import the User model
 const UserRouter = express.Router();
 const upload = require('../Middlewares/multer.middleware'); // Import middleware for file uploads
 const { registerUser, loginUser, logoutUser, getUser, UpdateDetails, UpdateProfilePic, changeCurrentPassword } = require('../Controllers/user.controllers'); // Import user controller functions
@@ -36,15 +36,23 @@ UserRouter.route('/logout').get(logoutUser);
 UserRouter.route('/profile')
     .get(VerifyJwt, async (req, res) => {
         try {
-            // Get user data from req.user set by VerifyJwt middleware
-            const user = await req.user.populate(['listings', 'orders', 'Bookmarks']);
-            console.log(user.orders);
-            console.log('Bookmarks',user.Bookmarks);
-            res.render('profile', { user: user, listings: user.listings, orders: user.orders });
-        } catch (error) {
+            const user = await User.findById(req.user._id)
+              .populate('listings')
+              .populate('orders')
+              .populate('Bookmarks');
+            
+            console.log("User Orders:", user.orders);
+            console.log("Bookmarks:", user.Bookmarks);
+      
+            res.render('profile', {
+              user: user,
+              listings: user.listings,
+              orders: user.orders,
+            });
+          } catch (error) {
             console.error('Error fetching profile:', error);
             res.status(500).json({ error: 'Error loading profile' });
-        }
+          }
     });
 
 UserRouter.route('/profile/:id').get(getUser);

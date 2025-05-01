@@ -21,6 +21,7 @@ const bookmarkRoutes = require('./Routes/bookmark.router');
 // Import routes
 const listingsRoutes = require('./Routes/listing.router');
 const chatRoutes = require('./Routes/chat.router');
+const orderRoutes = require('./routes/orders.routes');
 
 // Initialize app and server
 const app = express();
@@ -140,11 +141,12 @@ app.get('/', asyncHandler(async(req, res) => {
 
 app.use('/api/v1/user', UserRouter);
 app.use('/api/v1/listings', ListingRouter);
-app.use('/api/v1/orders', OrderRouter);
+// app.use('/api/v1/orders', OrderRouter);
 app.use('/api/v1/bookmarks', bookmarkRoutes);
 app.use('/api/chat', ChatRouter);
 app.use('/chat', ChatViewController); // Add this line
 app.use('/api/v1/category', CategoryRouter); // Add this line
+app.use('/api/v1/orders', orderRoutes);
 
 // Register routes
 
@@ -167,9 +169,17 @@ app.get('/api/v1/chat', (req, res) => {
   res.status(200).render('chat.ejs');
 });
 
+// app.get('/payment-cancel', (req, res) => {
+  
+// });
+
+// app.get('/payment-success', (req, res) => {
+//   res.render('payment-success');
+// });
+
 app.get('/payment-cancel', (req, res) => {
   // Get authentication token and set user in locals for template
-  const token = req.cookies.token;
+  const token = req.cookies.accessToken;
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
@@ -184,9 +194,32 @@ app.get('/payment-cancel', (req, res) => {
   res.status(200).render('index.ejs');
 });
 
+app.get('/success', (req, res) => {
+  const { token } = req.query; // ?token=...
+
+  console.log("Token from query:", token);
+
+  try {
+    
+    console.log('✅ I am in payment success page');
+
+    if (token) {
+     console.log('entering payment success page with token:');
+      // Redirect to capture payment route
+      return res.redirect(`/api/v1/orders/payment/capture?token=${token}`);
+    } else {
+      return res.status(400).render('payment-cancel', { error: 'Missing payment token' });
+    }
+  } catch (error) {
+    console.error('JWT verification failed:', error);
+    res.locals.user = null;
+    return res.status(401).render('payment-success', { error: 'Invalid token' });
+  }
+});
+
 app.get('/payment-success', (req, res) => {
   // Get authentication token and set user in locals for template
-  const token = req.cookies.token;
+  const token = req.cookies.accessToken;
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
@@ -198,29 +231,40 @@ app.get('/payment-success', (req, res) => {
   } else {
     res.locals.user = null;
   }
-  res.status(200).render('home.ejs');
+  res.status(200).render('payment-success.ejs');
+}
+);
+
+app.get('/cancel', (req, res) => {
+  // Get authentication token and set user in locals for template
+  const token = req.cookies.accessToken;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
+      req.user = decoded;
+      res.locals.user = decoded;
+    } catch (error) {
+      res.locals.user = null;
+    }
+  } else {
+    res.locals.user = null;
+  }
+  res.status(200).render('payment-cancel.ejs');
+}
+);
+
+
+// Add these routes to handle PayPal redirection:
+
+// PayPal success and cancel routes
+app.get('/payment-cancel', (req, res) => {
+  res.render('payment-cancel');
 });
 
 // Authentication routes to serve login and signup pages
-app.get('/login', (req, res) => {
-  res.render('login');
-});
 
-app.get('/signup', (req, res) => {
-  res.render('signup');
-});
 
-app.get('/logout', (req, res) => {
-  const options = {
-    httpOnly: true,
-    secure: true
-  };
-  
-  return res.status(200)
-    .clearCookie('token', options)
-    .clearCookie('refreshToken', options)
-    .redirect('/');
-});
+
 
 // DB connect + server boot
 const ConnectDB = async () => {
