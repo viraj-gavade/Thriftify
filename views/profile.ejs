@@ -311,8 +311,8 @@
                                     %></strong>
                                     <div class="payment-status" style="font-size: 0.9rem; margin-top: 5px;">
                                         Payment Status: 
-                                        <span style="color: <%= (order.paymentInfo && order.paymentInfo.isPaid) ? '#28a745' : '#e74c3c' %>;">
-                                            <%= (order.paymentInfo && order.paymentInfo.isPaid) ? 'Paid' : 'Unpaid' %>
+                                        <span style="color: <%= (order.isPaid && order.isPaid) ? '#28a745' : '#e74c3c' %>;">
+                                            <%= (order.isPaid && order.isPaid) ? 'Paid' : 'Unpaid' %>
                                         </span>
                                     </div>
                                 </div>
