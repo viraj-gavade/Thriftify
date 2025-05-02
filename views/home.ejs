@@ -715,14 +715,26 @@
       if (location) query += `&location=${encodeURIComponent(location)}`;
 
       try {
-        // First get the user's bookmarks
-        const bookmarkRes = await fetch('api/v1/user/bookmarks');
+        // First try to get the user's bookmarks, but don't block if it fails
         let userBookmarks = [];
-        if (bookmarkRes.ok) {
-          userBookmarks = await bookmarkRes.json();
+        try {
+          // Use the correct endpoint for retrieving user bookmarks
+          const bookmarkRes = await fetch('/api/v1/user/bookmarks');
+          if (bookmarkRes.ok) {
+            userBookmarks = await bookmarkRes.json();
+            console.log('User bookmarks loaded:', userBookmarks.length);
+          }
+        } catch (err) {
+          console.log('Error fetching bookmarks:', err);
+          console.log('User not logged in or bookmarks unavailable');
+          // Continue without bookmarks
         }
 
         const res = await fetch(`/api/v1/listings/sorted${query}`);
+        if (!res.ok) {
+          throw new Error(`Failed to fetch listings: ${res.status}`);
+        }
+        
         const data = await res.json();
 
         const listingsDiv = document.getElementById('listings');
@@ -734,8 +746,12 @@
         }
 
         data.forEach(listing => {
-          // Check if this listing is bookmarked by the user
-          const isBookmarked = userBookmarks.some(bookmark => bookmark.listingId === listing._id);
+          // Check if this listing is bookmarked by the user - improve matching logic
+          const isBookmarked = userBookmarks.some(bookmark => 
+            bookmark.listingId === listing._id || 
+            bookmark._id === listing._id ||
+            (bookmark.listing && bookmark.listing._id === listing._id)
+          );
           const bookmarkIcon = isBookmarked ? 'fas fa-bookmark' : 'far fa-bookmark';
           const bookmarkText = isBookmarked ? 'Bookmarked' : 'Bookmark';
           const bookmarkClass = isBookmarked ? 'bookmarkBtn bookmarked' : 'bookmarkBtn';
@@ -782,7 +798,7 @@
         });
       } catch (error) {
         console.log('Error fetching listings:', error);
-        document.getElementById('listings').innerHTML = '<p id="noData">Something went wrong. Please try again later.</p>';
+        document.getElementById('listings').innerHTML = '<p id="noData">No Listings are currently available.</p>';
       }
     }
 
@@ -801,10 +817,26 @@
     async function handleBookmark(listingId) {
       try {
         const button = document.querySelector(`#bookmarkBtn-${listingId}`);
+        const originalHTML = button.innerHTML;
+        const originalClass = button.className;
         
         // Toggle loading state
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         button.disabled = true;
+        
+        // Check if user is logged in first
+        try {
+          const checkLoginResponse = await fetch('/api/v1/user/check-auth');
+          if (!checkLoginResponse.ok) {
+            // User is not logged in
+            alert('Please log in to bookmark items');
+            window.location.href = '/api/v1/user/login';
+            return;
+          }
+        } catch (err) {
+          // If auth check fails, try the bookmark operation anyway
+          console.log('Auth check error:', err);
+        }
         
         // Send an API request to toggle bookmark the listing
         const response = await fetch(`/api/v1/bookmarks/toggle/${listingId}`, {
@@ -814,67 +846,93 @@
             },
             body: JSON.stringify({ listingId: listingId })
         });
+        
+        let data;
+        let isSuccess = false;
+        let isBookmarked = false;
 
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
+        try {
+          data = await response.json();
+          // Handle the special case where we get a message "Listing bookmarked"
+          // This is actually a success message despite not having a success field
+          if (data.message && (
+              data.message.includes('bookmarked') || 
+              data.message.includes('removed from bookmarks')
+          )) {
+            isSuccess = true;
+            isBookmarked = data.message.includes('bookmarked') && !data.message.includes('removed');
+          } else {
+            isSuccess = data.success || response.ok;
+            isBookmarked = data.isBookmarked ?? !button.classList.contains('bookmarked');
+          }
+        } catch (err) {
+          console.log('Error parsing response:', err);
+          // Use response.ok as fallback for success status
+          isSuccess = response.ok;
+          isBookmarked = !button.classList.contains('bookmarked'); // Toggle based on current state
         }
+
+        // Re-enable button
+        button.disabled = false;
         
-        const data = await response.json();
-        
-        if (data.success) {
-            // Re-enable button
-            button.disabled = false;
-            
+        // If the bookmark toggle operation was successful
+        if (isSuccess) {
             // Update the button appearance based on bookmark status
-            if (data.isBookmarked) {
+            if (isBookmarked) {
                 button.innerHTML = '<i class="fas fa-bookmark"></i> Bookmarked';
-                button.classList.add('bookmarked');
+                button.className = 'bookmarkBtn bookmarked';
             } else {
                 button.innerHTML = '<i class="far fa-bookmark"></i> Bookmark';
-                button.classList.remove('bookmarked');
+                button.className = 'bookmarkBtn';
             }
             
             // Show a small notification
-            const notification = document.createElement('div');
-            notification.className = 'bookmark-notification';
-            notification.textContent = data.isBookmarked ? 'Added to bookmarks!' : 'Removed from bookmarks!';
-            document.body.appendChild(notification);
-            
-            // Remove notification after 2 seconds
-            setTimeout(() => {
-                notification.classList.add('fade-out');
-                setTimeout(() => notification.remove(), 500);
-            }, 2000);
+            showBookmarkNotification(isBookmarked);
         } else {
-            // If there was an error, reset the button
+            // If there was an error, reset the button to original state
             button.disabled = false;
-            const isCurrentlyBookmarked = button.classList.contains('bookmarked');
-            button.innerHTML = isCurrentlyBookmarked ? 
-                '<i class="fas fa-bookmark"></i> Bookmarked' : 
-                '<i class="far fa-bookmark"></i> Bookmark';
-            alert('Failed to update bookmark: ' + (data.message || 'Unknown error'));
-            window.location.href = '/'; // Redirect to login if not authenticated
+            button.innerHTML = originalHTML;
+            button.className = originalClass;
+            
+            // Check if we need to redirect for auth issues
+            if (response.status === 401) {
+                alert('Please log in to bookmark items');
+                window.location.href = '/api/v1/user/login';
+            } else {
+                console.error('Error updating bookmark:', response.status);
+            }
         }
       } catch (error) {
         console.error('Error toggling bookmark:', error);
-        // Reset the button on error based on current state
+        
+        // Reset the button to a known good state
         const button = document.querySelector(`#bookmarkBtn-${listingId}`);
         button.disabled = false;
         const isCurrentlyBookmarked = button.classList.contains('bookmarked');
-        button.innerHTML = isCurrentlyBookmarked ? 
-            '<i class="fas fa-bookmark"></i> Bookmarked' : 
-            '<i class="far fa-bookmark"></i> Bookmark';        
-        // Check if it's an authentication error
-        if (error.message.includes('401') || error.message.includes('auth')) {
-            alert('Please log in to bookmark items');
-            window.location.href = '/login';
+        
+        if (isCurrentlyBookmarked) {
+            button.innerHTML = '<i class="fas fa-bookmark"></i> Bookmarked';
         } else {
-            alert('Error updating bookmark status. Please try again.');
+            button.innerHTML = '<i class="far fa-bookmark"></i> Bookmark';
         }
       }
     }
+    
+    // Function to show bookmark notification
+    function showBookmarkNotification(isBookmarked) {
+        const notification = document.createElement('div');
+        notification.className = 'bookmark-notification';
+        notification.textContent = isBookmarked ? 'Added to bookmarks!' : 'Removed from bookmarks!';
+        document.body.appendChild(notification);
+        
+        // Remove notification after 2 seconds
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 500);
+        }, 2000);
+    }
 
-    // Add CSS for the notification
+    // Add CSS for the notification and bookmark button
     document.head.insertAdjacentHTML('beforeend', `
       <style>
         .bookmark-notification {
@@ -893,6 +951,18 @@
         
         .bookmark-notification.fade-out {
           opacity: 0;
+        }
+        
+        .bookmarkBtn {
+          background: #e74c3c;
+        }
+        
+        .bookmarkBtn:hover {
+          background: #c0392b;
+        }
+        
+        .bookmarkBtn.bookmarked {
+          background: #7f8c8d !important;
         }
       </style>
     `);

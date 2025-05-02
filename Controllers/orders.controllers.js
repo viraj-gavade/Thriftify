@@ -235,7 +235,7 @@ const DeleteUserOrder = asyncHandler(async (req, res) => {
     if (!userId) {
         return res.status(401).json(new ApiResponse('User not authenticated')); // Sending error response if user is not authenticated
     }
-    const {orderId} = req.body; // Extracting order ID from request parameters
+    const {orderId} = req.params; // Extracting order ID from request parameters
     
     // First find the order to check permissions
     const orderToDelete = await Order.findById(orderId);
@@ -256,14 +256,66 @@ const DeleteUserOrder = asyncHandler(async (req, res) => {
     // Removing the order from the user's orders array
     await User.findByIdAndUpdate(order.buyer, { $pull: { orders: orderId } }, { new: true });
     await User.findByIdAndUpdate(order.seller, { $pull: { orders: orderId } }, { new: true });
-    return res.status(200).json(new ApiResponse('Order deleted successfully')); // Sending success response
+    return res.status(200).json(
+        new ApiResponse(200,'Order deleted successfully', order) // Sending success response with deleted order details
+    ) // Sending success response
 });
 
+const ViewOrderDetails = asyncHandler(async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        const order = await Order.findById(orderId)
+            .populate('listing')
+            .populate('buyer', 'fullname email')
+            .populate('seller', 'fullname email');
+        
+        if (!order) {
+            return res.status(404).render('error', { 
+                message: 'Order not found',
+                error: { status: 404 },
+                user: req.user
+            });
+        }
+
+        // Check if the requesting user is either the buyer or seller
+        if (req.user._id.toString() !== order.buyer._id.toString() && 
+            req.user._id.toString() !== order.seller._id.toString()) {
+            return res.status(403).render('error', {
+                message: 'You do not have permission to view this order',
+                error: { status: 403 },
+                user: req.user
+            });
+        }
+
+        // Format dates for display
+        const formattedOrder = {
+            ...order.toObject(),
+            createdAt: new Date(order.createdAt).toLocaleString(),
+            updatedAt: new Date(order.updatedAt).toLocaleString(),
+            placedAt: order.placedAt ? new Date(order.placedAt).toLocaleString() : null,
+            paidAt: order.paidAt ? new Date(order.paidAt).toLocaleString() : null
+        };
+
+        return res.render('order-details', {
+            title: `Order #${orderId.substring(0, 8)}... | Thriftify`,
+            order: formattedOrder,
+            user: req.user
+        });
+    } catch (error) {
+        console.error('Error fetching order details:', error);
+        return res.status(500).render('error', {
+            message: 'Error retrieving order details',
+            error: { status: 500 },
+            user: req.user
+        });
+    }
+});
 
 module.exports = {
     CreateOrder,
     GetOrder,
     GetUserOrders,
     DeleteUserOrder,
-    capturePayment
+    capturePayment,
+    ViewOrderDetails
 }

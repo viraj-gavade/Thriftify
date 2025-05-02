@@ -220,7 +220,7 @@
             pointer-events: none;
         }
         .secondary-link-active {
-            background: #7f8c8d;
+            background: #7f8c8d !important;
         }
         .view-more-link {
             display: inline-flex;
@@ -491,72 +491,131 @@
     function bookmarkListing() {
         // Get the bookmark button
         const bookmarkBtn = document.getElementById('bookmarkBtn');
+        const originalHTML = bookmarkBtn.innerHTML;
+        const originalClass = bookmarkBtn.className;
         
         // Toggle loading state
         bookmarkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         bookmarkBtn.disabled = true;
         
-        // Send an API request to toggle bookmark the listing
-        fetch(`/api/v1/bookmarks/toggle/<%= listing._id %>`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ listingId: '<%= listing._id %>' })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                // Re-enable button
-                bookmarkBtn.disabled = false;
-                
-                // Update the isBookmarked variable
-                isBookmarked = data.isBookmarked;
-                
-                // Update the button appearance based on bookmark status
-                if (data.isBookmarked) {
-                    bookmarkBtn.innerHTML = '<i class="fas fa-bookmark"></i> Bookmarked';
-                    bookmarkBtn.classList.add('secondary-link-active');
-                } else {
-                    bookmarkBtn.innerHTML = '<i class="far fa-bookmark"></i> Bookmark';
-                    bookmarkBtn.classList.remove('secondary-link-active');
+        // Check if user is logged in first (optional)
+        fetch('/api/v1/user/check-auth')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Not authenticated');
                 }
                 
-                // Show a small notification
-                const notification = document.createElement('div');
-                notification.className = 'bookmark-notification';
-                notification.textContent = data.isBookmarked ? 'Added to bookmarks!' : 'Removed from bookmarks!';
-                document.body.appendChild(notification);
+                // If authenticated, send the bookmark toggle request
+                return fetch(`/api/v1/bookmarks/toggle/<%= listing._id %>`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ listingId: '<%= listing._id %>' })
+                });
+            })
+            .then(response => {
+                if (!response.ok && response.status === 401) {
+                    // User not logged in
+                    alert('Please log in to bookmark items');
+                    window.location.href = '/api/v1/user/login';
+                    throw new Error('Authentication required');
+                }
+                return response.json();
+            })
+            .then(data => {
+                let success = false;
+                let bookmarked = isBookmarked; // Default to current state
                 
-                // Remove notification after 2 seconds
-                setTimeout(() => {
-                    notification.classList.add('fade-out');
-                    setTimeout(() => notification.remove(), 500);
-                }, 2000);
-            } else {
-                // If there was an error, reset the button
+                // Handle different response formats
+                if (data.message && (
+                    data.message.includes('bookmarked') || 
+                    data.message.includes('removed from bookmarks')
+                )) {
+                    success = true;
+                    bookmarked = data.message.includes('bookmarked') && !data.message.includes('removed');
+                } else {
+                    success = data.success || response.ok;
+                    bookmarked = data.isBookmarked ?? !isBookmarked;
+                }
+                
+                // Update button state
                 bookmarkBtn.disabled = false;
-                bookmarkBtn.innerHTML = isBookmarked ? 
-                    '<i class="fas fa-bookmark"></i> Bookmarked' : 
-                    '<i class="far fa-bookmark"></i> Bookmark';
-                alert('Failed to update bookmark: ' + (data.message || 'Unknown error'));
-                window.location.href = `/api/v1/listings/<%= listing._id %>`; // Reload the page to reflect the correct state
+                
+                if (success) {
+                    // Update the isBookmarked variable
+                    isBookmarked = bookmarked;
+                    
+                    // Update the button appearance based on bookmark status
+                    if (bookmarked) {
+                        bookmarkBtn.innerHTML = '<i class="fas fa-bookmark"></i> Bookmarked';
+                        bookmarkBtn.classList.add('secondary-link-active');
+                    } else {
+                        bookmarkBtn.innerHTML = '<i class="far fa-bookmark"></i> Bookmark';
+                        bookmarkBtn.classList.remove('secondary-link-active');
+                    }
+                    
+                    // Show notification
+                    showBookmarkNotification(bookmarked);
+                } else {
+                    // If there was an error, reset the button
+                    bookmarkBtn.innerHTML = originalHTML;
+                    bookmarkBtn.className = originalClass;
+                    console.error('Bookmark update failed:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Error in bookmark process:', error);
+                
+                if (!error.message.includes('Authentication required')) {
+                    // Only reset the button if we're not redirecting
+                    bookmarkBtn.disabled = false;
+                    bookmarkBtn.innerHTML = originalHTML;
+                    bookmarkBtn.className = originalClass;
+                }
+            });
+    }
+    
+    // Helper function to show bookmark notification
+    function showBookmarkNotification(isBookmarked) {
+        // Remove any existing notifications first
+        const existingNotifications = document.querySelectorAll('.bookmark-notification');
+        existingNotifications.forEach(notification => {
+            // Clear any existing removal timers
+            if (notification.dataset.timeoutId) {
+                clearTimeout(parseInt(notification.dataset.timeoutId));
             }
-        })
-        .catch(error => {
-            console.error('Error toggling bookmark:', error);
-            // Reset the button on error based on current state
-            bookmarkBtn.disabled = false;
-            bookmarkBtn.innerHTML = isBookmarked ? 
-                '<i class="fas fa-bookmark"></i> Bookmarked' : 
-                '<i class="far fa-bookmark"></i> Bookmark';
-            alert('Error updating bookmark status. Please try again.');
+            notification.remove();
         });
+        
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = 'bookmark-notification';
+        notification.textContent = isBookmarked ? 'Added to bookmarks!' : 'Removed from bookmarks!';
+        document.body.appendChild(notification);
+        
+        // Add a small delay to ensure proper animation rendering
+        setTimeout(() => {
+            // Force a reflow to ensure the animation starts correctly
+            notification.offsetWidth;
+            
+            // Set a timeout to remove the notification
+            const fadeOutTimeoutId = setTimeout(() => {
+                notification.classList.add('fade-out');
+                
+                const removeTimeoutId = setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        notification.remove();
+                    }
+                }, 500);
+                
+                // Store the timeout ID in case we need to clear it
+                notification.dataset.removeTimeoutId = removeTimeoutId;
+            }, 2000);
+            
+            // Store the timeout ID in case we need to clear it
+            notification.dataset.timeoutId = fadeOutTimeoutId;
+        }, 10);
     }
     
     // Optional: Auto-play slideshow

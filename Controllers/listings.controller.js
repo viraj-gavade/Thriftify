@@ -69,6 +69,7 @@ const GetAllListings = asyncHandler(async (req, res) => {
           return res.status(404).json({ message: 'No listings found' });
         }
     
+        console.log('This listing function is working:');
         res.status(200).json(listings);
       } catch (error) {
         console.error('Error fetching listings:', error);

@@ -5,7 +5,8 @@ const {
     GetOrder, 
     GetUserOrders, 
     DeleteUserOrder, 
-    capturePayment 
+    capturePayment,
+    ViewOrderDetails 
 } = require('../Controllers/orders.controllers');
 const  VerifyJwt  = require('../Middlewares/authentication.middleware');
 
@@ -13,9 +14,12 @@ const  VerifyJwt  = require('../Middlewares/authentication.middleware');
 router.post('/create', VerifyJwt, CreateOrder);
 router.get('/:id', VerifyJwt, GetOrder);
 router.get('/', VerifyJwt, GetUserOrders);
-router.delete('/delete', VerifyJwt, DeleteUserOrder);
+router.delete('/delete/:orderId', VerifyJwt, DeleteUserOrder);
 
 // Payment routes
 router.get('/payment/capture', capturePayment);
+
+// Web route for viewing order details
+router.get('/view/:id', VerifyJwt, ViewOrderDetails);
 
 module.exports = router;

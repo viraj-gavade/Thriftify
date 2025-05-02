@@ -7,6 +7,7 @@ const VerifyJwt = require('../Middlewares/authentication.middleware');
 
 // Add this line to import the Listing model if not already imported
 const Listing = require('../Schemas/listings.schemas');
+const asyncHandler = require('../utils/asynchandler');
 
 UserRouter.route('/').get((req, res) => {
     res.status(200).json({ message: 'User router path working' });
@@ -97,7 +98,34 @@ UserRouter.route('/bookmarks').get(VerifyJwt, async (req, res) => {
     }
 });
 
+
+const GetUserOrders = asyncHandler(async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).populate('orders');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.status(200).json(user.orders);
+    } catch (error) {
+        console.error('Error fetching user orders:', error);
+        res.status(500).json({ error: 'Error fetching user orders' });
+    }
+}
+)
 // Add this new route for toggling bookmarks
 
+UserRouter.route('/check-auth').get(VerifyJwt, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).populate('listings').populate('Bookmarks');
+        if (!user) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        res.status(200).json({ user });
+    } catch (error) {
+        console.error('Error checking authentication:', error);
+        res.status(500).json({ error: 'Error checking authentication' });
+    }
+}
+);
 
 module.exports = UserRouter;
