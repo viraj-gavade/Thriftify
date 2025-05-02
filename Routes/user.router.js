@@ -37,13 +37,22 @@ UserRouter.route('/profile')
     .get(VerifyJwt, async (req, res) => {
         try {
             const user = await User.findById(req.user._id)
-              .populate('listings')
-              .populate('orders')
-              .populate('Bookmarks');
+            .populate('listings')
+            .populate({
+              path: 'orders',
+              populate: {
+                path: 'listing',
+                select: 'title description price images'
+              }
+            })
+            .populate('Bookmarks');
+          
+            
+          
             
             console.log("User Orders:", user.orders);
             console.log("Bookmarks:", user.Bookmarks);
-      
+    
             res.render('profile', {
               user: user,
               listings: user.listings,

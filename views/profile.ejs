@@ -256,21 +256,39 @@
                             <div class="order-header" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                                 <div>
                                     <strong>Order #<%= order._id %></strong>
-                                    <div>Placed on: <%= new Date(order.createdAt).toLocaleString() %></div>
+                                    <div>Placed on: <%= new Date(order.placedAt || order.createdAt).toLocaleString() %></div>
                                 </div>
                                 <div>
-                                    <span class="order-status" style="padding: 5px 10px; border-radius: 3px; background-color: <%= order.status === 'Delivered' ? '#28a745' : order.status === 'Processing' ? '#ffc107' : '#17a2b8' %>; color: white;">
-                                        <%= order.status %>
+                                    <span class="order-status" style="padding: 5px 10px; border-radius: 3px; background-color: <%= 
+                                        order.orderStatus === 'delivered' || order.status === 'Delivered' ? '#28a745' : 
+                                        order.orderStatus === 'pending' || order.status === 'Processing' ? '#ffc107' : '#17a2b8' %>; 
+                                        color: white;">
+                                        <%= order.orderStatus || order.status || 'Processing' %>
                                     </span>
                                 </div>
                             </div>
                             
                             <div class="order-items">
-                                <% if (order.items && order.items.length > 0) { %>
+                                <% if (order.listing) { %>
+                                    <div class="order-item" style="display: flex; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+                                        <div class="item-image" style="width: 80px; margin-right: 15px;">
+                                            <img src="<%= order.listing.images && order.listing.images[0] || '/images/default-product.png' %>" 
+                                                alt="<%= order.listing.title || 'Product' %>" 
+                                                style="width: 100%; height: auto; border-radius: 3px;">
+                                        </div>
+                                        <div class="item-details" style="flex-grow: 1;">
+                                            <div class="item-title"><%= order.listing.title || 'Product' %></div>
+                                            <div class="item-price">₹<%= order.listing.price || '0' %></div>
+                                            <div class="item-quantity">Quantity: 1</div>
+                                        </div>
+                                    </div>
+                                <% } else if (order.items && order.items.length > 0) { %>
                                     <% order.items.forEach(item => { %>
                                         <div class="order-item" style="display: flex; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
                                             <div class="item-image" style="width: 80px; margin-right: 15px;">
-                                                <img src="<%= item.image || '/images/default-product.png' %>" alt="<%= item.title %>" style="width: 100%; height: auto; border-radius: 3px;">
+                                                <img src="<%= item.image || '/images/default-product.png' %>" 
+                                                    alt="<%= item.title %>" 
+                                                    style="width: 100%; height: auto; border-radius: 3px;">
                                             </div>
                                             <div class="item-details" style="flex-grow: 1;">
                                                 <div class="item-title"><%= item.title %></div>
@@ -286,7 +304,17 @@
                             
                             <div class="order-footer" style="display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
                                 <div class="order-total">
-                                    <strong>Total: ₹<%= order.paymentInfo.amount || 'N/A' %></strong>
+                                    <strong>Total: ₹<%= 
+                                        (order.paymentInfo && order.paymentInfo.amount) || 
+                                        (order.listing && order.listing.price) || 
+                                        'N/A' 
+                                    %></strong>
+                                    <div class="payment-status" style="font-size: 0.9rem; margin-top: 5px;">
+                                        Payment Status: 
+                                        <span style="color: <%= (order.paymentInfo && order.paymentInfo.isPaid) ? '#28a745' : '#e74c3c' %>;">
+                                            <%= (order.paymentInfo && order.paymentInfo.isPaid) ? 'Paid' : 'Unpaid' %>
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="order-actions">
                                     <a href="/order/<%= order._id %>" class="btn btn-primary" style="font-size: 0.9rem; padding: 5px 10px;">View Details</a>
