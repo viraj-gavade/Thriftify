@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"="width=device-width, initial-scale=1.0">
     <title>Your Profile | Thriftify</title>
     <link rel="stylesheet" href="/css/styles.css">
     <style>
@@ -184,6 +184,36 @@
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
+        
+        /* Loading spinner styles */
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            margin-left: 10px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid #ffffff;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+        }
+        
+        .btn-content {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Disabled button style */
+        .btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -229,7 +259,12 @@
                         <label for="email">Email</label>
                         <input type="email" id="email" name="email" value="<%= user.email %>" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Update Details</button>
+                    <button type="submit" class="btn btn-primary" id="update-details-btn">
+                        <span class="btn-content">
+                            Update Details
+                            <span class="loading-spinner" id="details-spinner"></span>
+                        </span>
+                    </button>
                 </form>
             </div>
             
@@ -248,7 +283,12 @@
                         <label for="confirmPassword">Confirm New Password</label>
                         <input type="password" id="confirmPassword" name="confirmPassword" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Update Password</button>
+                    <button type="submit" class="btn btn-primary" id="update-password-btn">
+                        <span class="btn-content">
+                            Update Password
+                            <span class="loading-spinner" id="password-spinner"></span>
+                        </span>
+                    </button>
                 </form>
             </div>
             
@@ -262,7 +302,12 @@
                     <div class="form-group">
                         <img id="preview" src="#" alt="Preview" style="max-width: 200px; max-height: 200px; display: none;">
                     </div>
-                    <button type="submit" class="btn btn-primary">Update Profile Picture</button>
+                    <button type="submit" class="btn btn-primary" id="update-pic-btn">
+                        <span class="btn-content">
+                            Update Profile Picture
+                            <span class="loading-spinner" id="pic-spinner"></span>
+                        </span>
+                    </button>
                 </form>
             </div>
         </div>
@@ -442,7 +487,12 @@
                 
                 <div style="text-align: right;">
                     <button type="button" id="cancelUpdateBtn" style="background-color: #95a5a6; color: white; border: none; padding: 8px 15px; border-radius: 4px; margin-right: 10px; cursor: pointer;">Cancel</button>
-                    <button type="submit" style="background-color: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Update Listing</button>
+                    <button type="submit" id="update-listing-btn" style="background-color: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+                        <span class="btn-content">
+                            Update Listing
+                            <span class="loading-spinner" id="listing-spinner"></span>
+                        </span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -539,6 +589,12 @@
         document.getElementById('update-details-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
+            const detailsSpinner = document.getElementById('details-spinner');
+            const submitButton = document.getElementById('update-details-btn');
+            
+            // Show loading spinner and disable button
+            detailsSpinner.style.display = 'inline-block';
+            submitButton.disabled = true;
             
             fetch('/api/v1/user/update-details', {
                 method: 'PATCH',
@@ -549,6 +605,10 @@
             })
             .then(response => response.json())
             .then(data => {
+                // Hide loading spinner and enable button
+                detailsSpinner.style.display = 'none';
+                submitButton.disabled = false;
+                
                 // Fixed condition: Check for message containing "success" instead of just data.success
                 if (data.success || (data.message && data.message.toLowerCase().includes('success'))) {
                     showNotification('Profile details updated successfully!', 'success');
@@ -560,6 +620,10 @@
                 }
             })
             .catch(error => {
+                // Hide loading spinner and enable button
+                detailsSpinner.style.display = 'none';
+                submitButton.disabled = false;
+                
                 console.error('Error:', error);
                 showNotification('An error occurred while updating profile details.', 'error');
             });
@@ -568,11 +632,17 @@
         document.getElementById('update-password-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
+            const passwordSpinner = document.getElementById('password-spinner');
+            const submitButton = document.getElementById('update-password-btn');
             
             if (formData.get('newPassword') !== formData.get('confirmPassword')) {
                 showNotification('New passwords do not match!', 'error');
                 return;
             }
+            
+            // Show loading spinner and disable button
+            passwordSpinner.style.display = 'inline-block';
+            submitButton.disabled = true;
             
             fetch('/api/v1/user/update-password', {
                 method: 'PATCH',
@@ -587,6 +657,10 @@
             })
             .then(response => response.json())
             .then(data => {
+                // Hide loading spinner and enable button
+                passwordSpinner.style.display = 'none';
+                submitButton.disabled = false;
+                
                 if (data.success || (data.message && data.message.toLowerCase().includes('success'))) {
                     showNotification('Password updated successfully!', 'success');
                     this.reset();
@@ -595,6 +669,10 @@
                 }
             })
             .catch(error => {
+                // Hide loading spinner and enable button
+                passwordSpinner.style.display = 'none';
+                submitButton.disabled = false;
+                
                 console.error('Error:', error);
                 showNotification('An error occurred while updating password.', 'error');
             });
@@ -603,6 +681,12 @@
         document.getElementById('update-profilepic-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
+            const picSpinner = document.getElementById('pic-spinner');
+            const submitButton = document.getElementById('update-pic-btn');
+            
+            // Show loading spinner and disable button
+            picSpinner.style.display = 'inline-block';
+            submitButton.disabled = true;
             
             fetch('/api/v1/user/update-profilepic', {
                 method: 'PATCH',
@@ -610,6 +694,10 @@
             })
             .then(response => response.json())
             .then(data => {
+                // Hide loading spinner and enable button
+                picSpinner.style.display = 'none';
+                submitButton.disabled = false;
+                
                 if (data.success || (data.message && data.message.toLowerCase().includes('success'))) {
                     showNotification('Profile picture updated successfully!', 'success');
                     setTimeout(() => {
@@ -620,6 +708,10 @@
                 }
             })
             .catch(error => {
+                // Hide loading spinner and enable button
+                picSpinner.style.display = 'none';
+                submitButton.disabled = false;
+                
                 console.error('Error:', error);
                 showNotification('An error occurred while updating profile picture.', 'error');
             });
@@ -688,6 +780,12 @@
         // Handle form submission for updating listing
         updateListingForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            const listingSpinner = document.getElementById('listing-spinner');
+            const submitButton = document.getElementById('update-listing-btn');
+            
+            // Show loading spinner and disable button
+            listingSpinner.style.display = 'inline-block';
+            submitButton.disabled = true;
             
             const listingId = document.getElementById('update-listing-id').value;
             const formData = {
@@ -708,6 +806,10 @@
             })
             .then(response => response.json())
             .then(data => {
+                // Hide loading spinner and enable button
+                listingSpinner.style.display = 'none';
+                submitButton.disabled = false;
+                
                 if (data._id) {
                     showNotification('Listing updated successfully!', 'success');
                     updateModal.style.display = 'none';
@@ -719,6 +821,10 @@
                 }
             })
             .catch(error => {
+                // Hide loading spinner and enable button
+                listingSpinner.style.display = 'none';
+                submitButton.disabled = false;
+                
                 console.error('Error:', error);
                 showNotification('An error occurred while updating the listing.', 'error');
             });
@@ -728,14 +834,24 @@
         document.querySelectorAll('.btn-delete-listing').forEach(button => {
             button.addEventListener('click', function() {
                 const listingId = this.getAttribute('data-id');
+                const deleteButton = this;
                 
                 if (confirm('Are you sure you want to delete this listing? This action cannot be undone.')) {
+                    // Change button text to loading
+                    const originalText = deleteButton.textContent;
+                    deleteButton.textContent = 'Deleting...';
+                    deleteButton.disabled = true;
+                    
                     // Send DELETE request to remove the listing
                     fetch(`/api/v1/listings/${listingId}`, {
                         method: 'DELETE'
                     })
                     .then(response => response.json())
                     .then(data => {
+                        // Restore button state
+                        deleteButton.textContent = originalText;
+                        deleteButton.disabled = false;
+                        
                         if (data.message && data.message.includes('success')) {
                             showNotification('Listing deleted successfully!', 'success');
                             setTimeout(() => {
@@ -746,6 +862,10 @@
                         }
                     })
                     .catch(error => {
+                        // Restore button state
+                        deleteButton.textContent = originalText;
+                        deleteButton.disabled = false;
+                        
                         console.error('Error:', error);
                         showNotification('An error occurred while deleting the listing.', 'error');
                     });
