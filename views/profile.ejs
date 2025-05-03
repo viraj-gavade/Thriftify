@@ -137,6 +137,53 @@
             color: #3498db;
             font-weight: bold;
         }
+        
+        /* Toast notification styles */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            color: white;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .notification.fade-out {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .notification.success {
+            background-color: #28a745;
+        }
+        
+        .notification.error {
+            background-color: #dc3545;
+        }
+        
+        .notification.warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .notification.info {
+            background-color: #17a2b8;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -348,6 +395,9 @@
         </div>
     </div>
     
+    <!-- Toast notification container -->
+    <div id="toast-container"></div>
+    
     <!-- Add the update listing modal below the main content but before the footer -->
     <div id="updateListingModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 1000; overflow: auto;">
         <div style="background-color: white; margin: 10% auto; padding: 20px; width: 70%; max-width: 600px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
@@ -402,6 +452,58 @@
     <%- include('partials/footer') %>
     
     <script>
+        // Toast notification function
+        function showNotification(message, type = 'info') {
+            // Remove any existing notifications first
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(notification => {
+                // Clear any existing removal timers
+                if (notification.dataset.timeoutId) {
+                    clearTimeout(parseInt(notification.dataset.timeoutId));
+                }
+                notification.remove();
+            });
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            // Add appropriate icon based on type
+            let icon = '';
+            switch(type) {
+                case 'success':
+                    icon = '<i class="fas fa-check-circle"></i>';
+                    break;
+                case 'error':
+                    icon = '<i class="fas fa-exclamation-circle"></i>';
+                    break;
+                case 'warning':
+                    icon = '<i class="fas fa-exclamation-triangle"></i>';
+                    break;
+                default:
+                    icon = '<i class="fas fa-info-circle"></i>';
+            }
+            
+            notification.innerHTML = `${icon} ${message}`;
+            document.body.appendChild(notification);
+            
+            // Show notification with a small delay for animation
+            setTimeout(() => {
+                notification.classList.add('show');
+                
+                // Set timeout to remove notification
+                const timeoutId = setTimeout(() => {
+                    notification.classList.add('fade-out');
+                    
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                }, 3000);
+                
+                notification.dataset.timeoutId = timeoutId;
+            }, 10);
+        }
+        
         // Tab switching functionality
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', function() {
@@ -447,16 +549,19 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    alert('Profile details updated successfully!');
-                    window.location.reload();
+                // Fixed condition: Check for message containing "success" instead of just data.success
+                if (data.success || (data.message && data.message.toLowerCase().includes('success'))) {
+                    showNotification('Profile details updated successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
                 } else {
-                    alert('Error updating profile: ' + data.message);
+                    showNotification('Error updating profile: ' + data.message, 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while updating profile details.');
+                showNotification('An error occurred while updating profile details.', 'error');
             });
         });
         
@@ -465,7 +570,7 @@
             const formData = new FormData(this);
             
             if (formData.get('newPassword') !== formData.get('confirmPassword')) {
-                alert('New passwords do not match!');
+                showNotification('New passwords do not match!', 'error');
                 return;
             }
             
@@ -482,16 +587,41 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    alert('Password updated successfully!');
+                if (data.success || (data.message && data.message.toLowerCase().includes('success'))) {
+                    showNotification('Password updated successfully!', 'success');
                     this.reset();
                 } else {
-                    alert('Error updating password: ' + data.message);
+                    showNotification('Error updating password: ' + data.message, 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while updating password.');
+                showNotification('An error occurred while updating password.', 'error');
+            });
+        });
+        
+        document.getElementById('update-profilepic-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('/api/v1/user/update-profilepic', {
+                method: 'PATCH',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success || (data.message && data.message.toLowerCase().includes('success'))) {
+                    showNotification('Profile picture updated successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showNotification('Error updating profile picture: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred while updating profile picture.', 'error');
             });
         });
         
@@ -510,29 +640,6 @@
             }
         });
         
-        document.getElementById('update-profilepic-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            
-            fetch('/api/v1/user/update-profilepic', {
-                method: 'PATCH',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Profile picture updated successfully!');
-                    window.location.reload();
-                } else {
-                    alert('Error updating profile picture: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while updating profile picture.');
-            });
-        });
-
         // Update listing modal functions
         const updateModal = document.getElementById('updateListingModal');
         const closeUpdateModalBtn = document.getElementById('closeUpdateModal');
@@ -602,16 +709,18 @@
             .then(response => response.json())
             .then(data => {
                 if (data._id) {
-                    alert('Listing updated successfully!');
+                    showNotification('Listing updated successfully!', 'success');
                     updateModal.style.display = 'none';
-                    window.location.reload(); // Reload to see changes
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
                 } else {
-                    alert('Error updating listing: ' + (data.message || 'Unknown error'));
+                    showNotification('Error updating listing: ' + (data.message || 'Unknown error'), 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while updating the listing.');
+                showNotification('An error occurred while updating the listing.', 'error');
             });
         });
         
@@ -628,15 +737,17 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.message && data.message.includes('success')) {
-                            alert('Listing deleted successfully!');
-                            window.location.reload(); // Reload to see changes
+                            showNotification('Listing deleted successfully!', 'success');
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
                         } else {
-                            alert('Error deleting listing: ' + (data.message || 'Unknown error'));
+                            showNotification('Error deleting listing: ' + (data.message || 'Unknown error'), 'error');
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('An error occurred while deleting the listing.');
+                        showNotification('An error occurred while deleting the listing.', 'error');
                     });
                 }
             });

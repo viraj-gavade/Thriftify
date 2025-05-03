@@ -78,7 +78,6 @@ UserSchema.pre('save', async function (next) {
 // Instance method to compare the provided password with the stored hashed password
 UserSchema.methods.isPasswordCorrect = async function (password) {
     // Compare the plain text password with the hashed password in the database
-    console.log(password, this.password);
     return await bcryptjs.compare(password, this.password);
 };
 

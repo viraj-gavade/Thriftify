@@ -104,6 +104,11 @@
   </div>
 </div>
 
+<!-- Toast container for notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <!-- Toasts will be appended here -->
+</div>
+
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     // Image preview functionality with improved UI
@@ -113,7 +118,7 @@
     imageInput.addEventListener('change', function() {
       imagePreview.innerHTML = '';
       if (this.files.length > 5) {
-        alert('You can upload a maximum of 5 images');
+        showNotification('You can upload a maximum of 5 images', 'warning');
         this.value = '';
         return;
       }
@@ -183,7 +188,7 @@
       imageInput.dispatchEvent(event);
     }
     
-    // Form submission - unchanged
+    // Form submission - modified to use custom notifications
     const listingForm = document.getElementById('listingForm');
     
     listingForm.addEventListener('submit', async function(e) {
@@ -208,16 +213,78 @@
         const data = await response.json();
         
         if (response.ok) {
-          alert('Listing created successfully!');
-          window.location.href = '/'; // Redirect to listings page
+          showNotification('Listing created successfully!', 'success');
+          setTimeout(() => {
+            window.location.href = '/'; // Redirect to listings page
+          }, 1500);
         } else {
-          alert(`Error: ${data.message || 'Could not create listing'}`);
+          showNotification(`Error: ${data.message || 'Could not create listing'}`, 'danger');
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while creating the listing');
+        showNotification('An error occurred while creating the listing', 'danger');
       }
     });
+    
+    // Improved notification function based on the working example
+    function showNotification(message, type = 'info') {
+      // Remove any existing notifications first
+      const existingNotifications = document.querySelectorAll('.custom-notification');
+      existingNotifications.forEach(notification => {
+        // Clear any existing removal timers
+        if (notification.dataset.timeoutId) {
+          clearTimeout(parseInt(notification.dataset.timeoutId));
+        }
+        notification.remove();
+      });
+      
+      // Create new notification
+      const notification = document.createElement('div');
+      notification.className = `custom-notification ${type}`;
+      
+      // Add appropriate icon based on notification type
+      let icon = '';
+      switch (type) {
+        case 'success':
+          icon = '<i class="bi bi-check-circle-fill me-2"></i>';
+          break;
+        case 'danger':
+          icon = '<i class="bi bi-exclamation-triangle-fill me-2"></i>';
+          break;
+        case 'warning':
+          icon = '<i class="bi bi-exclamation-circle-fill me-2"></i>';
+          break;
+        default:
+          icon = '<i class="bi bi-info-circle-fill me-2"></i>';
+      }
+      
+      notification.innerHTML = `${icon} ${message}`;
+      document.body.appendChild(notification);
+      
+      // Add a small delay to ensure proper animation rendering
+      setTimeout(() => {
+        // Force a reflow to ensure the animation starts correctly
+        notification.offsetWidth;
+        notification.classList.add('show');
+        
+        // Set a timeout to remove the notification
+        const fadeOutTimeoutId = setTimeout(() => {
+          notification.classList.remove('show');
+          
+          const removeTimeoutId = setTimeout(() => {
+            if (document.body.contains(notification)) {
+              notification.remove();
+            }
+          }, 500);
+          
+          // Store the timeout ID in case we need to clear it
+          notification.dataset.removeTimeoutId = removeTimeoutId;
+        }, 3000);
+        
+        // Store the timeout ID in case we need to clear it
+        notification.dataset.timeoutId = fadeOutTimeoutId;
+      }, 10);
+    }
   });
 </script>
 
@@ -325,6 +392,48 @@
   
   .image-tips li {
     margin-bottom: 0.5rem;
+  }
+  
+  /* Toast styling */
+  .toast {
+    display: none;
+  }
+  
+  /* Custom Notification styling */
+  .custom-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 1000;
+    color: white;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  
+  .custom-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  .custom-notification.success {
+    background-color: #28a745;
+  }
+  
+  .custom-notification.danger {
+    background-color: #dc3545;
+  }
+  
+  .custom-notification.warning {
+    background-color: #ffc107;
+    color: #212529;
+  }
+  
+  .custom-notification.info {
+    background-color: #17a2b8;
   }
 </style>
 
