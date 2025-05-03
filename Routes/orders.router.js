@@ -1,25 +1,27 @@
-const express = require('express');
-const router = express.Router();
-const { 
-    CreateOrder, 
-    GetOrder, 
-    GetUserOrders, 
-    DeleteUserOrder, 
-    capturePayment,
-    ViewOrderDetails 
-} = require('../Controllers/orders.controllers');
-const  VerifyJwt  = require('../Middlewares/authentication.middleware');
+// const express = require('express');
 
-// Order routes
-router.post('/create', VerifyJwt, CreateOrder);
-router.get('/:id', VerifyJwt, GetOrder);
-router.get('/', VerifyJwt, GetUserOrders);
-router.delete('/delete/:orderId', VerifyJwt, DeleteUserOrder);
+// const OrderRouter = express.Router();
+// const upload = require('../Middlewares/multer.middleware');
+// const {CreateOrder, GetOrder, GetUserOrders, DeleteUserOrder, capturePayment } = require('../Controllers/orders.controllers');
+// const VerifyJwt = require('../Middlewares/authentication.middleware');
 
-// Payment routes
-router.get('/payment/capture', capturePayment);
+// // Base route
+// OrderRouter.route('/').get((req, res) => {
+//     res.status(200).json({ message: 'Order router path working' });
+// });
 
-// Web route for viewing order details
-router.get('/view/:id', VerifyJwt, ViewOrderDetails);
+// // Create order endpoint
+// OrderRouter.route('/create-order').post(VerifyJwt, CreateOrder);
 
-module.exports = router;
+// // Make capture endpoint publicly accessible (no JWT) since it's called from payment-success page
+// OrderRouter.route('/capture').get(capturePayment);
+
+// // User order management routes with JWT protection
+// OrderRouter.route('/user/orders')
+//     .get(VerifyJwt, GetUserOrders)
+//     .delete(VerifyJwt, DeleteUserOrder);
+
+// // Get single order by ID
+// OrderRouter.route('/order/:id').get(VerifyJwt, GetOrder);
+
+// module.exports = OrderRouter;

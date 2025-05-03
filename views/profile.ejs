@@ -305,7 +305,7 @@
                             <div class="order-footer" style="display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
                                 <div class="order-total">
                                     <strong>Total: ₹<%= 
-                                        (order.paymentInfo && order.paymentInfo.amount) || 
+                                        (order.paymentInfo && order.paymentInfo.amount ? (order.paymentInfo.amount * 84.58).toFixed(2) : null) || 
                                         (order.listing && order.listing.price) || 
                                         'N/A' 
                                     %></strong>

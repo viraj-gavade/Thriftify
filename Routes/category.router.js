@@ -11,6 +11,7 @@ CategoryRouter.get('/',VerifyJwt, (req, res) => {
 CategoryRouter.get('/:category', VerifyJwt, async (req, res) => {
     try {
         const { category } = req.params;
+        console.log('Category:', category); // Log the category for debugging
         const validCategories = ['electronics', 'furniture', 'clothing', 'books', 'others'];
         
         // Validate category
@@ -24,7 +25,7 @@ CategoryRouter.get('/:category', VerifyJwt, async (req, res) => {
         // Build query object
         const query = { 
             category,
-            isSold: false 
+            isSold: true 
         };
         
         // Add price range filtering if specified

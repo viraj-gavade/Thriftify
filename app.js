@@ -18,7 +18,7 @@ const bookmarkRoutes = require('./Routes/bookmark.router');
 
 // Import routes
 const chatRoutes = require('./Routes/chat.router');
-const orderRoutes = require('./Routes/orders.router');
+const orderRoutes = require('./Routes/orders.routes');
 
 // Initialize app and server
 const app = express();

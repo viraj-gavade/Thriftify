@@ -350,7 +350,7 @@
                      alt="<%= order.listing.title || 'Product' %>" class="product-image">
                 <div class="product-details">
                     <div class="product-title"><%= order.listing.title || 'Product title not available' %></div>
-                    <div class="product-price">₹<%= order.listing.price || 'Price not available' %></div>
+                    <div class="product-price">$<%= order.listing.price || 'Price not available' %></div>
                     <div class="product-category"><i class="fas fa-tag"></i> <%= order.listing.category || 'Category not available' %></div>
                     <div class="product-seller"><i class="fas fa-user"></i> Seller: <%= order.seller && order.seller.fullname ? order.seller.fullname : 'Unknown seller' %></div>
                     <div class="product-seller"><i class="fas fa-envelope"></i> <%= order.seller && order.seller.email ? order.seller.email : 'Email not available' %></div>
