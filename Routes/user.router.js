@@ -99,7 +99,7 @@ UserRouter.route('/bookmarks').get(VerifyJwt, async (req, res) => {
 });
 
 
-const GetUserOrders = asyncHandler(async (req, res) => {
+UserRouter.route('my-orders').get(async (req, res) => {
     try {
         const user = await User.findById(req.user._id).populate('orders');
         if (!user) {

@@ -320,7 +320,7 @@
             <div class="info-row">
                 <div class="info-label">Order Status:</div>
                 <div class="info-value">
-                    <span class="order-status status-<%= order.orderStatus.toLowerCase() %>"><%= order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1) %></span>
+                    <span class="order-status status-<%= order.orderStatus ? order.orderStatus.toLowerCase() : 'unknown' %>"><%= order.orderStatus ? (order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1)) : 'Unknown' %></span>
                 </div>
             </div>
             <div class="info-row">
@@ -333,7 +333,7 @@
             </div>
             <div class="info-row">
                 <div class="info-label">Order Date:</div>
-                <div class="info-value"><%= order.createdAt %></div>
+                <div class="info-value"><%= order.createdAt || 'Not available' %></div>
             </div>
             <% if (order.isPaid && order.paidAt) { %>
                 <div class="info-row">
@@ -344,58 +344,90 @@
         </div>
         
         <h2 class="section-title"><i class="fas fa-box"></i> Item Details</h2>
-        <div class="product-card">
-            <img src="<%= order.listing.images[0] || '/images/default-product.png' %>" alt="<%= order.listing.title %>" class="product-image">
-            <div class="product-details">
-                <div class="product-title"><%= order.listing.title %></div>
-                <div class="product-price">₹<%= order.listing.price %></div>
-                <div class="product-category"><i class="fas fa-tag"></i> <%= order.listing.category %></div>
-                <div class="product-seller"><i class="fas fa-user"></i> Seller: <%= order.seller.fullname %></div>
-                <div class="product-seller"><i class="fas fa-envelope"></i> <%= order.seller.email %></div>
+        <% if (order.listing) { %>
+            <div class="product-card">
+                <img src="<%= order.listing.images && order.listing.images.length > 0 ? order.listing.images[0] : '/images/default-product.png' %>" 
+                     alt="<%= order.listing.title || 'Product' %>" class="product-image">
+                <div class="product-details">
+                    <div class="product-title"><%= order.listing.title || 'Product title not available' %></div>
+                    <div class="product-price">₹<%= order.listing.price || 'Price not available' %></div>
+                    <div class="product-category"><i class="fas fa-tag"></i> <%= order.listing.category || 'Category not available' %></div>
+                    <div class="product-seller"><i class="fas fa-user"></i> Seller: <%= order.seller && order.seller.fullname ? order.seller.fullname : 'Unknown seller' %></div>
+                    <div class="product-seller"><i class="fas fa-envelope"></i> <%= order.seller && order.seller.email ? order.seller.email : 'Email not available' %></div>
+                </div>
             </div>
-        </div>
+        <% } else { %>
+            <div class="info-card">
+                <p style="text-align: center; color: #e74c3c;">
+                    <i class="fas fa-exclamation-triangle"></i> Product information is not available for this order.
+                </p>
+            </div>
+        <% } %>
         
         <h2 class="section-title"><i class="fas fa-truck"></i> Shipping Information</h2>
-        <div class="info-card">
-            <div class="info-row">
-                <div class="info-label">Name:</div>
-                <div class="info-value"><%= order.shippingInfo.name %></div>
+        <% if (order.shippingInfo) { %>
+            <div class="info-card">
+                <div class="info-row">
+                    <div class="info-label">Name:</div>
+                    <div class="info-value"><%= order.shippingInfo.name || 'Not provided' %></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Address:</div>
+                    <div class="info-value"><%= order.shippingInfo.address || 'Not provided' %></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">City:</div>
+                    <div class="info-value"><%= order.shippingInfo.city || 'Not provided' %></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Pincode:</div>
+                    <div class="info-value"><%= order.shippingInfo.pincode || 'Not provided' %></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Phone:</div>
+                    <div class="info-value"><%= order.shippingInfo.phone || 'Not provided' %></div>
+                </div>
             </div>
-            <div class="info-row">
-                <div class="info-label">Address:</div>
-                <div class="info-value"><%= order.shippingInfo.address %></div>
+        <% } else { %>
+            <div class="info-card">
+                <p style="text-align: center; color: #e74c3c;">
+                    <i class="fas fa-exclamation-triangle"></i> Shipping information is not available for this order.
+                </p>
             </div>
-            <div class="info-row">
-                <div class="info-label">City:</div>
-                <div class="info-value"><%= order.shippingInfo.city %></div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Pincode:</div>
-                <div class="info-value"><%= order.shippingInfo.pincode %></div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Phone:</div>
-                <div class="info-value"><%= order.shippingInfo.phone %></div>
-            </div>
-        </div>
+        <% } %>
         
         <h2 class="section-title"><i class="fas fa-file-invoice-dollar"></i> Payment Information</h2>
-        <div class="info-card">
-            <div class="info-row">
-                <div class="info-label">Amount:</div>
-                <div class="info-value">₹<%= order.paymentInfo.amount %></div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Payment Method:</div>
-                <div class="info-value"><i class="fab fa-<%= order.paymentInfo.method %>"></i> <%= order.paymentInfo.method.charAt(0).toUpperCase() + order.paymentInfo.method.slice(1) %></div>
-            </div>
-            <% if (order.paypalOrderId) { %>
+        <% if (order.paymentInfo) { %>
+            <div class="info-card">
                 <div class="info-row">
-                    <div class="info-label">Transaction ID:</div>
-                    <div class="info-value"><%= order.paypalOrderId %></div>
+                    <div class="info-label">Amount:</div>
+                    <div class="info-value">₹<%= order.paymentInfo.amount || 'Not available' %></div>
                 </div>
-            <% } %>
-        </div>
+                <div class="info-row">
+                    <div class="info-label">Payment Method:</div>
+                    <div class="info-value">
+                        <% if (order.paymentInfo.method) { %>
+                            <i class="fab fa-<%= order.paymentInfo.method %>"></i> 
+                            <%= order.paymentInfo.method.charAt(0).toUpperCase() + order.paymentInfo.method.slice(1) %>
+                        <% } else { %>
+                            Not specified
+                        <% } %>
+                    </div>
+                </div>
+                <% if (order.paypalOrderId) { %>
+                    <div class="info-row">
+                        <div class="info-label">Transaction ID:</div>
+                        <div class="info-value"><%= order.paypalOrderId %></div>
+                    </div>
+                <% } %>
+            </div>
+        <% } else { %>
+            <div class="info-card">
+                <p style="text-align: center; color: #e74c3c;">
+                    <i class="fas fa-exclamation-triangle"></i> Payment information is not available for this order.
+                </p>
+            </div>
+        <% } %>
         
         <h2 class="section-title"><i class="fas fa-history"></i> Order Timeline</h2>
         <div class="timeline">
@@ -434,7 +466,7 @@
         </div>
         
         <div class="action-buttons">
-            <a href="/user/orders" class="btn btn-primary"><i class="fas fa-arrow-left"></i> Back to Orders</a>
+            <a href="/api/v1/user/profile" class="btn btn-primary"><i class="fas fa-arrow-left"></i> Back to Orders</a>
             <% if (user._id.toString() === order.seller._id.toString() && order.orderStatus === 'placed') { %>
                 <a href="/api/v1/orders/update/<%= order._id %>/shipped" class="btn btn-success">
                     <i class="fas fa-truck"></i> Mark as Shipped
