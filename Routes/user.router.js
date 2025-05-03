@@ -46,14 +46,7 @@ UserRouter.route('/profile')
                 select: 'title description price images'
               }
             })
-            .populate('Bookmarks');
-          
-            
-          
-            
-            console.log("User Orders:", user.orders);
-            console.log("Bookmarks:", user.Bookmarks);
-    
+            .populate('Bookmarks');    
             res.render('profile', {
               user: user,
               listings: user.listings,

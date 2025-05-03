@@ -10,7 +10,7 @@ const VerifyJwt = asyncHandler(async (req, res, next) => {
     try {
         // Retrieve the token from cookies or the Authorization header (Bearer token)
         const token = req.cookies?.accessToken || req.header('Authorization')?.replace('Bearer ', '');
-        console.log("token",token);  // Log the token for debugging purposes
+    
         // If no token is found, redirect the user to the signin page
         if (!token) {
             return res.redirect('/api/v1/user/login');
@@ -19,11 +19,8 @@ const VerifyJwt = asyncHandler(async (req, res, next) => {
         // Verify the token using the secret stored in environment variables
         const decodedtoken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
 
-        console.log(decodedtoken);  // Log the decoded token for debugging purposes
         // Find the user associated with the decoded token (_id)
         const user = await User.findById(decodedtoken._id).select('-password -refreshToken');  // Exclude password and refreshToken from the response
-
-        console.log(user);  // Log the user for debugging purposes
         // If no user is found, redirect the user to the signin page
         if (!user) {
             return res.redirect('/api/v1/user/login');

@@ -6,22 +6,19 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const connectdb = require('./DataBase/connect');
 const jwt = require('jsonwebtoken');
-const Listing = require('./Schemas/listings.schemas'); // Import the Listing model
+const Listing = require('./Schemas/listings.schemas');
 
 // Routers
 const UserRouter = require('./Routes/user.router');
 const ListingRouter = require('./Routes/listing.router');
-// const OrderRouter = require('./Routes/orders.router');
 const ChatRouter = require('./Routes/chat.router'); 
-const ChatViewController = require('./Routes/chat.view.router'); // Add this line
+const ChatViewController = require('./Routes/chat.view.router'); 
 const asyncHandler = require('./utils/asynchandler');
-const VerifyJwt = require('./Middlewares/authentication.middleware');
 const bookmarkRoutes = require('./Routes/bookmark.router');
 
 // Import routes
-const listingsRoutes = require('./Routes/listing.router');
 const chatRoutes = require('./Routes/chat.router');
-const orderRoutes = require('./routes/orders.routes');
+const orderRoutes = require('./Routes/orders.router');
 
 // Initialize app and server
 const app = express();
@@ -141,11 +138,10 @@ app.get('/', asyncHandler(async(req, res) => {
 
 app.use('/api/v1/user', UserRouter);
 app.use('/api/v1/listings', ListingRouter);
-// app.use('/api/v1/orders', OrderRouter);
 app.use('/api/v1/bookmarks', bookmarkRoutes);
 app.use('/api/chat', ChatRouter);
-app.use('/chat', ChatViewController); // Add this line
-app.use('/api/v1/category', CategoryRouter); // Add this line
+app.use('/chat', ChatViewController); 
+app.use('/api/v1/category', CategoryRouter); 
 app.use('/api/v1/orders', orderRoutes);
 
 // Register routes

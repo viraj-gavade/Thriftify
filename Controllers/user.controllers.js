@@ -32,7 +32,6 @@ const generateAccessTokenAndRefreshToken = async (userId) => {
 const registerUser = asyncHandler(async (req, res) => {
     // Destructure request body to get the user input
     const { username, email, fullname, password, confirmPassword } = req.body
-    console.log(req.body)
 
     // Check for empty fields and throw a custom error if any field is missing
     if ([username, email, fullname, password, confirmPassword].some((field) =>
@@ -95,7 +94,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
 const loginUser = asyncHandler(async (req, res) => {
-    console.log(req.body)
     // Destructure request body to get identifier and password
     const { email, password } = req.body
    
@@ -106,7 +104,6 @@ const loginUser = asyncHandler(async (req, res) => {
     
     // Throw an error if user is not found
     if (!user) {
-        console.log('No user found with identifier:', identifier)
         throw new CustomApiError(404, 'User not found!')
     }
 
@@ -160,7 +157,7 @@ const logoutUser = asyncHandler(async (req, res) => {
         };
         
         // Clear cookies and redirect
-        console.log('Cookies being cleared')
+        
         return res.status(200)
             .clearCookie('accessToken', options)
             .clearCookie('refreshToken', options)
@@ -299,10 +296,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         }
         // Destructure new and old password from request body
         const { oldPassword, newPassword, confirmPassword } = req.body
-        console.log('Old Password', oldPassword)
-        console.log('New Password', newPassword)
-        console.log('Confirm Password', confirmPassword)
-        console.log('Body', req.body)
+       
         // Find the user using the logged-in user's ID
         const user = await User.findById(req.user._id).select(' -refreshToken')
 

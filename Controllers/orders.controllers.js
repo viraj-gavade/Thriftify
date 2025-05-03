@@ -58,8 +58,6 @@ const CreateOrder = asyncHandler(async (req, res) => {
     const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
     // Make sure baseUrl starts with http:// or https://
     const formattedBaseUrl = baseUrl.startsWith('http') ? baseUrl : `http://${baseUrl}`;
-    console.log(`Using base URL: ${formattedBaseUrl}`); // Debugging log
-
     const accessToken = await getPaypalAccessToken();
 
     const orderRes = await axios.post(
@@ -147,7 +145,6 @@ const CreateOrder = asyncHandler(async (req, res) => {
 
 // Capture the PayPal payment after approval
 const capturePayment = asyncHandler(async (req, res) => {
-  console.log("Capture payment called with query:", req.query);
     const { token } = req.query; // we get ?token=... from PayPal redirect
     if (!token) throw new CustomApiError("Missing PayPal token in query", 400);
   
@@ -199,10 +196,7 @@ const capturePayment = asyncHandler(async (req, res) => {
         updatedOrder.listing._id, 
         { isSold: true }, 
         { new: true }
-      );
-
-      console.log("Payment captured successfully");
-      
+      );      
       // Redirect to payment success page instead of returning JSON
       return res.redirect('/payment-success');
     } catch (err) {
