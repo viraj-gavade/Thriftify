@@ -1,11 +1,30 @@
-const uploadFile = require('../utils/cloudinary') // Utility to handle file uploads to Cloudinary
-const User = require('../Schemas/user.schemas') // User model for database operations
-const bcryptjs = require('bcrypt') // Library for hashing passwords
-const jwt = require('jsonwebtoken') // Library for generating JWT tokens
-const asyncHandler = require('../utils/asynchandler') // Middleware for handling async errors in Express
-const CustomApiError = require('../utils/apiErrors') // Custom error handling class
-const ApiResponse = require('../utils/apiResponse') // Custom error handling class
+/**
+ * @fileoverview Controller functions for user management including registration, 
+ * authentication, profile updates, and account management.
+ */
 
+// Cloudinary utility for file uploading and management (used in registration and profile updates)
+const uploadFile = require('../utils/cloudinary')
+// User database model with schema definition and authentication methods
+const User = require('../Schemas/user.schemas') 
+// Password hashing library (used indirectly via User model methods)
+const bcryptjs = require('bcrypt') 
+// JSON Web Token library for authentication (used in token generation functions)
+const jwt = require('jsonwebtoken') 
+// Custom utility for handling asynchronous Express routes with proper error handling
+const asyncHandler = require('../utils/asynchandler') 
+// Custom error class for consistent API error responses
+const CustomApiError = require('../utils/apiErrors') 
+// Custom response formatter for consistent API responses
+const ApiResponse = require('../utils/apiResponse') 
+
+/**
+ * Generates both access and refresh tokens for a user
+ * 
+ * @param {string} userId - MongoDB ObjectId of the user
+ * @returns {Object} Object containing accessToken and refreshToken
+ * @throws {CustomApiError} If token generation fails
+ */
 const generateAccessTokenAndRefreshToken = async (userId) => {
     try {
         // Fetch user from database using userId
@@ -22,13 +41,18 @@ const generateAccessTokenAndRefreshToken = async (userId) => {
         // Return both tokens for client-side usage
         return { accessToken, refreshToken }
     } catch (error) {
-        // Log the error and throw a custom API error if token generation fails
-        console.log("Access token Error:-", error)
         throw new CustomApiError(500, 'Something went wrong while generating the access and refresh token!')
     }
 }
 
-
+/**
+ * Registers a new user with required profile information and avatar
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} Redirects to login page on successful registration
+ * @throws {CustomApiError} For validation errors or registration failures
+ */
 const registerUser = asyncHandler(async (req, res) => {
     // Destructure request body to get the user input
     const { username, email, fullname, password, confirmPassword } = req.body
@@ -41,28 +65,26 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // Check if a user with the same username or email already exists in the database
-    const exstinguser = await User.findOne({
+    const existingUser = await User.findOne({
         $or: [{ username }, { email }]
     })
-    if (exstinguser) {
+    if (existingUser) {
         return res.status(409).json({
             status: 'fail',
             message: 'Username or email already taken!'
         })  
-
     }
 
-    // Check if the profilepic file was uploaded, and throw an error if not
+    // Check if the profile picture file was uploaded
     const profilepicLocalpath = req.files?.profilepic[0]?.path
     
     if (profilepicLocalpath === undefined) {
         throw new CustomApiError(404, 'Avatar must be uploaded!')
     }
 
-    // Upload avatar and cover image to Cloudinary
+    // Upload avatar to Cloudinary
     const profilepic = await uploadFile(profilepicLocalpath)
     
-
     // Validate if avatar upload was successful
     if (!profilepic) {
         throw new CustomApiError(400, 'Avatar file is required')
@@ -96,12 +118,19 @@ const registerUser = asyncHandler(async (req, res) => {
     return res.status(201).redirect('/api/v1/user/login')
 })
 
-
+/**
+ * Authenticates a user and generates access and refresh tokens
+ * 
+ * @param {Object} req - Express request object with email and password
+ * @param {Object} res - Express response object
+ * @returns {Object} Redirects to homepage on successful login with set auth cookies
+ * @throws {CustomApiError} For authentication failures
+ */
 const loginUser = asyncHandler(async (req, res) => {
     // Destructure request body to get identifier and password
     const { email, password } = req.body
    
-
+    // Find user by email
     const user = await User.findOne({
         email: email.toLowerCase()
     })
@@ -112,15 +141,15 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     // Check if the provided password matches the stored password
-    const ValidPassword = await user.isPasswordCorrect(password)
-    if (!ValidPassword) {
+    const validPassword = await user.isPasswordCorrect(password)
+    if (!validPassword) {
         throw new CustomApiError(401, 'Invalid user credentials!')
     }
 
     // Generate access and refresh tokens for the logged-in user
     const { accessToken, refreshToken } = await generateAccessTokenAndRefreshToken(user._id)
 
-    // Fetch the logged-in user without sensitive fields like password and refreshToken
+    // Fetch the logged-in user without sensitive fields
     const loggedInUser = await User.findById(user._id).select('-password -refreshToken')
 
     // Cookie options for secure and HTTP-only cookies
@@ -137,7 +166,14 @@ const loginUser = asyncHandler(async (req, res) => {
         .redirect('/');
 })
 
-// Async handler to manage user logout functionality
+/**
+ * Logs out a user by clearing their refresh token and auth cookies
+ * 
+ * @param {Object} req - Express request object with authenticated user
+ * @param {Object} res - Express response object
+ * @returns {Object} Redirects to homepage after clearing auth cookies
+ * @throws {CustomApiError} For logout failures
+ */
 const logoutUser = asyncHandler(async (req, res) => {
     try {
         // Clear the refresh token in the database if the user is logged in
@@ -161,40 +197,56 @@ const logoutUser = asyncHandler(async (req, res) => {
         };
         
         // Clear cookies and redirect
-        
         return res.status(200)
             .clearCookie('accessToken', options)
             .clearCookie('refreshToken', options)
             .redirect('/');
     } catch (error) {
-        console.error("Logout error:", error);
         throw new CustomApiError(500, 'Something went wrong during logout');
     }
 });
 
-    
+/**
+ * Retrieves a user by their ID
+ * 
+ * @param {Object} req - Express request object with user ID in params
+ * @param {Object} res - Express response object
+ * @returns {Object} User object without sensitive fields
+ * @throws {CustomApiError} If user is not found
+ */
 const getUser = asyncHandler(async (req, res) => {
     // Fetch the user ID from the request parameters
     const { id } = req.params
+    
     // Fetch the user by ID from the database
     const user = await User.findById(id).select('-password -refreshToken')
+    
     // Throw an error if user is not found
     if (!user) {
         throw new CustomApiError(404, 'User not found!')
     }
+    
     // Return the user details in the response
     return res.status(200).json(user)
 })
 
+/**
+ * Updates user profile details (name, username, email)
+ * 
+ * @param {Object} req - Express request object with authenticated user
+ * @param {Object} res - Express response object
+ * @returns {Object} Updated user object and status message
+ * @throws {CustomApiError} For validation failures or update errors
+ */
 const UpdateDetails = asyncHandler(async (req, res) => {
     if(!req.user){
         throw new CustomApiError(401, 'Unauthorized access!')
     }
     
     const { id } = req.user
-    const Finduser = await User.findById(id).select('-password -refreshToken')
+    const currentUser = await User.findById(id).select('-password -refreshToken')
     
-    if (!Finduser) {
+    if (!currentUser) {
         throw new CustomApiError(404, 'User not found!')
     }
     
@@ -232,7 +284,7 @@ const UpdateDetails = asyncHandler(async (req, res) => {
         return res.status(200).json({
             status: 'success',
             message: 'No fields provided for update',
-            user: Finduser
+            user: currentUser
         })
     }
     
@@ -257,33 +309,53 @@ const UpdateDetails = asyncHandler(async (req, res) => {
     })
 })
 
+/**
+ * Updates user profile picture
+ * 
+ * @param {Object} req - Express request object with authenticated user and file upload
+ * @param {Object} res - Express response object
+ * @returns {Object} Updated user object with new profile picture URL
+ * @throws {CustomApiError} For validation failures or update errors
+ */
 const UpdateProfilePic = asyncHandler(async (req, res) => {
     if(!req.user){
         throw new CustomApiError(401, 'Unauthorized access!')
     }
+    
     const { id } = req.user
-    const Finduser = await User.findById(id).select('-password -refreshToken')
-    if (!Finduser) {
+    const currentUser = await User.findById(id).select('-password -refreshToken')
+    
+    if (!currentUser) {
         throw new CustomApiError(404, 'User not found!')
     }
-    // Check if the profilepic file was uploaded, and throw an error if not
+    
+    // Check if the profile picture file was uploaded
     const profilepicLocalpath = req.files?.profilepic[0]?.path
     
     if (profilepicLocalpath === undefined) {
-        throw new CustomApiError(404, 'profilepic must be uploaded!')
+        throw new CustomApiError(404, 'Profile picture must be uploaded!')
     }
-    // Upload avatar and cover image to Cloudinary
+    
+    // Upload avatar to Cloudinary
     const profilepic = await uploadFile(profilepicLocalpath)
+    
     // Validate if avatar upload was successful
     if (!profilepic) {
-        throw new CustomApiError(400, 'Avatar file is required')
+        throw new CustomApiError(400, 'Profile picture file is required')
     }
+    
     // Update user profile picture in the database
-    const updatedUser = await User.findByIdAndUpdate(id, { profilepic: profilepic.url }, { new: true, runValidators: true }).select('-password -refreshToken')
+    const updatedUser = await User.findByIdAndUpdate(
+        id, 
+        { profilepic: profilepic.url }, 
+        { new: true, runValidators: true }
+    ).select('-password -refreshToken')
+    
     // Throw an error if user update fails
     if (!updatedUser) {
         throw new CustomApiError(500, 'Server was unable to update the user please try again later!')
     }
+    
     // Return the updated user details in the response
     return res.status(200).json({
         status: 'success',
@@ -292,17 +364,26 @@ const UpdateProfilePic = asyncHandler(async (req, res) => {
     })
 })
 
+/**
+ * Changes the user's password after verifying current password
+ * 
+ * @param {Object} req - Express request object with authenticated user and password data
+ * @param {Object} res - Express response object
+ * @returns {Object} Success message and updated user object
+ * @throws {CustomApiError} For password validation failures
+ */
 const changeCurrentPassword = asyncHandler(async (req, res) => {
     try {
         // Check if the user is authenticated
         if (!req.user) {
             throw new CustomApiError(401, 'Unauthorized access!')
         }
+        
         // Destructure new and old password from request body
         const { oldPassword, newPassword, confirmPassword } = req.body
        
         // Find the user using the logged-in user's ID
-        const user = await User.findById(req.user._id).select(' -refreshToken')
+        const user = await User.findById(req.user._id).select('-refreshToken')
 
         // Check if the provided old password matches the stored password
         const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
@@ -321,7 +402,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         // Save the updated user information
         await user.save({ validateBeforeSave: true })
 
-        // Redirect the user to their channel page after successful password change
+        // Return success response with user data
         return res.status(200).json({
             status: 'success',
             message: 'Password changed successfully!',
@@ -329,12 +410,18 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         })
 
     } catch (error) {
-        // Log error and throw custom error for any issues during password change
-        console.log(error)
         throw new CustomApiError(500, 'Something went wrong while changing the password please try again later!')
     }
 })
 
+/**
+ * Retrieves the currently logged-in user's profile data
+ * 
+ * @param {Object} req - Express request object with authenticated user
+ * @param {Object} res - Express response object
+ * @returns {Object} User object without sensitive fields
+ * @throws {CustomApiError} If user is not authenticated or not found
+ */
 const getLoggedInUser = asyncHandler(async (req, res) => {
     // Check if the user is authenticated
     if (!req.user) {

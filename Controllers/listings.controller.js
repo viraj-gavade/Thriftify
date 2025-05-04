@@ -164,7 +164,22 @@ const UpdateListing = asyncHandler( async (req, res) => {
     }
 });
 
-const DeleteListing = asyncHandler( async (req, res) => {   
+/**
+ * Deletes a listing from the database
+ * 
+ * This function handles the deletion of a listing with several checks:
+ * 1. Verifies the listing exists
+ * 2. Ensures the current user is the owner of the listing
+ * 3. Prevents deletion of listings that have been marked as sold
+ * 
+ * After successful deletion, it also updates the user document to remove
+ * the listing reference from their listings array.
+ * 
+ * @param {Object} req - Express request object containing listing ID in params and user in auth token
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error details
+ */
+const DeleteListing = asyncHandler(async (req, res) => {   
     try {
         // Check if the listing exists
         const listing = await Listing.findById(req.params.id);
@@ -190,7 +205,6 @@ const DeleteListing = asyncHandler( async (req, res) => {
 
         return res.status(200).json({ message: 'Listing deleted successfully' });
     } catch (error) {
-        console.error(error);
         return res.status(500).json({ message: 'Server error' });
     }
 });

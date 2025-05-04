@@ -1,23 +1,37 @@
-// Import the mongoose library to interact with MongoDB
+/**
+ * @fileoverview Database connection module for MongoDB using Mongoose
+ * Establishes and manages the connection to MongoDB for the Thriftify application
+ */
+
+// Mongoose is an ODM (Object Data Modeling) library for MongoDB and Node.js
+// Used to create schemas, models, and handle database operations throughout the application
 const mongoose = require('mongoose');
 
-// Import any necessary constants or configurations from a separate file (e.g., for the database URI and name)
+// Imports environment variables from constants file
+// These include MONGO_URI and DB_NAME needed for the database connection below
 require('../utils/constant');
 
-// Create an asynchronous function to connect to MongoDB
-const connectdb = async () => {
+/**
+ * Establishes a connection to MongoDB using environment variables
+ * 
+ * @async
+ * @function connectDB
+ * @returns {Promise<mongoose.Connection>} MongoDB connection object on successful connection
+ * @throws {Error} Propagates any connection errors for handling by the caller
+ */
+const connectDB = async () => {
     try {
-        // Attempt to connect to the MongoDB database using the connection URI and database name from environment variables
-        const connect = await mongoose.connect(`${process.env.MONGO_URI}/${process.env.DB_NAME}`);
+        // Connect to MongoDB using URI and database name from environment variables
+        // Connection options are set using Mongoose defaults for the current version
+        const connection = await mongoose.connect(`${process.env.MONGO_URI}/${process.env.DB_NAME}`);
         
-        // Log a message confirming that the connection was successful, and display the host of the MongoDB connection
-        console.log(`\n Connected to Database!!, Connection Host: ${connect.connection.host}`);
-        
+        // Return the connection for potential use by the caller
+        return connection;
     } catch (error) {
-        // If an error occurs during the connection attempt, log the error message
-        console.log(`Error Occured`, error);
+        // Propagate the error to be handled by the application's error handler
+        throw new Error(`Failed to connect to MongoDB: ${error.message}`);
     }
 };
 
-// Export the connectdb function to be used in other parts of the application (e.g., in the main app file)
-module.exports = connectdb;
+// Export the connection function to be used in the application's entry point
+module.exports = connectDB;

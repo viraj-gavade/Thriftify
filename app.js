@@ -28,7 +28,7 @@ const bookmarkRoutes = require('./Routes/bookmark.router');
 /**
  * Order routes - Handles payment and order processing
  */
-const orderRoutes = require('./Routes/orders.routes');
+const orderRoutes = require('./Routes/orders.router');
 
 // Initialize app and server
 /**

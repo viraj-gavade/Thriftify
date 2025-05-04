@@ -205,7 +205,14 @@ const capturePayment = asyncHandler(async (req, res) => {
       return res.redirect('/payment-cancel');
     }
 });
-  
+
+/**
+ * Retrieves a specific order by ID
+ * 
+ * @param {Object} req - Express request object containing order ID in params
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with order details or error
+ */
 const GetOrder = asyncHandler(async (req, res) => { 
     const orderId = req.params.id; // Extracting order ID from request parameters   
     const order = await Order.findById(orderId).populate('listing').populate('buyer').populate('seller'); // Fetching order details from database

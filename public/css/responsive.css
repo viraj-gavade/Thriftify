@@ -1,4 +1,17 @@
-/* Base responsive styles for Thriftify */
+/**
+ * Thriftify Responsive CSS Framework
+ * 
+ * A lightweight responsive CSS framework providing:
+ * - Base reset styles
+ * - Typography scaling
+ * - Form elements styling
+ * - Responsive utilities
+ * - Mobile-first breakpoints
+ */
+
+/* -----------------------------
+ * Reset & Base Styles
+ * ----------------------------- */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -6,8 +19,8 @@
 }
 
 html {
-  font-size: 16px;
-  -webkit-text-size-adjust: 100%;
+  font-size: 16px; /* Base font size for rem calculations */
+  -webkit-text-size-adjust: 100%; /* Prevent font scaling in landscape on mobile */
 }
 
 body {
@@ -20,12 +33,14 @@ body {
   flex-direction: column;
 }
 
+/* Image handling for responsive behavior */
 img {
   max-width: 100%;
   height: auto;
   display: block;
 }
 
+/* Main container for content with responsive padding */
 .container {
   width: 100%;
   max-width: 1200px;
@@ -33,18 +48,24 @@ img {
   padding: 1rem;
 }
 
-/* Typography */
+/* -----------------------------
+ * Typography
+ * Scales down at smaller screen sizes
+ * ----------------------------- */
 h1 { font-size: 1.8rem; }
 h2 { font-size: 1.5rem; }
 h3 { font-size: 1.3rem; }
 h4 { font-size: 1.1rem; }
 p { font-size: 1rem; }
 
-/* Buttons & Form Elements */
+/* -----------------------------
+ * Interactive Elements
+ * Ensures minimum tap target size (44px)
+ * ----------------------------- */
 button, .btn, 
 input[type="submit"] {
   display: inline-block;
-  min-height: 44px;
+  min-height: 44px; /* WCAG accessible tap target size */
   padding: 0.6rem 1.2rem;
   border-radius: 4px;
   font-size: 1rem;
@@ -61,10 +82,13 @@ input, select, textarea {
   font-size: 1rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  min-height: 44px;
+  min-height: 44px; /* WCAG accessible input size */
 }
 
-/* Flexbox utilities */
+/* -----------------------------
+ * Layout Utilities
+ * Flexbox helpers for common layouts
+ * ----------------------------- */
 .flex {
   display: flex;
 }
@@ -85,16 +109,24 @@ input, select, textarea {
   justify-content: space-between;
 }
 
+/* Standardized spacing utilities */
 .gap-1 { gap: 0.5rem; }
 .gap-2 { gap: 1rem; }
 .gap-3 { gap: 1.5rem; }
 
-/* Grid utilities */
+/* Grid layout utility */
 .grid {
   display: grid;
 }
 
-/* Responsive breakpoints */
+/* -----------------------------
+ * Responsive Breakpoints
+ * Mobile-first design with 4 breakpoints:
+ * - Large: 1024px and below
+ * - Medium: 768px and below
+ * - Small: 576px and below
+ * - Extra small: 400px and below
+ * ----------------------------- */
 @media (max-width: 1024px) {
   .container {
     padding: 0.8rem;
@@ -103,7 +135,7 @@ input, select, textarea {
 
 @media (max-width: 768px) {
   html {
-    font-size: 15px;
+    font-size: 15px; /* Scale down base font size */
   }
   
   .container {
@@ -117,7 +149,7 @@ input, select, textarea {
 
 @media (max-width: 576px) {
   html {
-    font-size: 14px;
+    font-size: 14px; /* Further reduce base font size */
   }
   
   .container {
@@ -131,7 +163,7 @@ input, select, textarea {
 
 @media (max-width: 400px) {
   html {
-    font-size: 13px;
+    font-size: 13px; /* Smallest base font size */
   }
   
   .container {

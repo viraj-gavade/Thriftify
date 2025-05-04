@@ -1,23 +1,44 @@
-// Import the multer module for handling file uploads
+/**
+ * @fileoverview Multer configuration for handling file uploads in Thriftify
+ * This middleware manages temporary file storage before cloudinary processing
+ */
+
+// Multer is a middleware for handling multipart/form-data (file uploads)
+// Used here to configure temporary storage of uploaded files before further processing
 const multer = require('multer');
 
-// Configure storage settings for file uploads
+/**
+ * Configure disk storage settings for temporary file uploads
+ * Files are stored temporarily before being processed and moved to Cloudinary
+ */
 const storage = multer.diskStorage({
-    // Define the destination folder for uploaded files
+    /**
+     * Sets the directory where uploaded files will be temporarily stored
+     * 
+     * @param {Object} req - Express request object
+     * @param {Object} file - File object containing details of the uploaded file
+     * @param {Function} cb - Callback function to set destination directory
+     */
     destination: function (req, file, cb) {
-        // The uploaded files will be saved in the 'public/temp' folder
         cb(null, './public/temp');
     },
     
-    // Define the filename for the uploaded file
+    /**
+     * Determines the filename of the uploaded file in the destination directory
+     * 
+     * @param {Object} req - Express request object
+     * @param {Object} file - File object containing details of the uploaded file
+     * @param {Function} cb - Callback function to set the filename
+     */
     filename: function (req, file, cb) {
-        // The original file name will be used as the uploaded file's name
+        // Using original filename - in production, consider generating unique filenames
+        // to prevent overwriting existing files with the same name
         cb(null, file.originalname);
     }
 });
 
-// Set up the multer instance using the storage configuration
+// Configure the multer middleware with the storage settings
 const upload = multer({ storage: storage });
 
-// Export the upload instance to use in other parts of the application
+// Export the configured multer instance for use in route handlers
 module.exports = upload;
