@@ -1,5 +1,13 @@
+/**
+ * @fileoverview Order routes for e-commerce functionality
+ * Handles order creation, retrieval, payment processing, and management
+ */
+
+// Express framework for creating route handlers
 const express = require('express');
 const router = express.Router();
+
+// Order controller functions implementing the business logic
 const { 
     CreateOrder, 
     GetOrder, 
@@ -8,18 +16,51 @@ const {
     capturePayment,
     ViewOrderDetails 
 } = require('../Controllers/orders.controllers');
-const  VerifyJwt  = require('../Middlewares/authentication.middleware');
 
-// Order routes
-router.post('/create', VerifyJwt, CreateOrder);
-router.get('/:id', VerifyJwt, GetOrder);
-router.get('/', VerifyJwt, GetUserOrders);
-router.delete('/delete/:orderId', VerifyJwt, DeleteUserOrder);
+// Authentication middleware to protect routes that require user login
+const verifyJWT = require('../Middlewares/authentication.middleware');
 
-// Payment routes
+/**
+ * Create a new order
+ * POST /create
+ * Requires authentication
+ */
+router.post('/create', verifyJWT, CreateOrder);
+
+/**
+ * Get a specific order by ID
+ * GET /:id
+ * Requires authentication
+ */
+router.get('/:id', verifyJWT, GetOrder);
+
+/**
+ * Get all orders for the authenticated user
+ * GET /
+ * Requires authentication
+ */
+router.get('/', verifyJWT, GetUserOrders);
+
+/**
+ * Delete a user's order by ID
+ * DELETE /delete/:orderId
+ * Requires authentication
+ */
+router.delete('/delete/:orderId', verifyJWT, DeleteUserOrder);
+
+/**
+ * Capture payment for an order
+ * GET /payment/capture
+ * Handles payment service callbacks
+ */
 router.get('/payment/capture', capturePayment);
 
-// Web route for viewing order details
-router.get('/view/:id', VerifyJwt, ViewOrderDetails);
+/**
+ * View order details page
+ * GET /view/:id
+ * Renders order details for web interface
+ * Requires authentication
+ */
+router.get('/view/:id', verifyJWT, ViewOrderDetails);
 
 module.exports = router;

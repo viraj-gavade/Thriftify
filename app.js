@@ -13,10 +13,7 @@ const UserRouter = require('./Routes/user.router');
  * Listing router - Handles all listing/product related API endpoints
  */
 const ListingRouter = require('./Routes/listing.router');
-/**
- * Chat view controller - Manages chat UI rendering and interactions
- */
-const ChatViewController = require('./Routes/chat.view.router'); 
+ 
 /**
  * Async handler utility - Wraps async route handlers for error handling
  */
@@ -149,8 +146,7 @@ app.use('/api/v1/user', UserRouter);
 app.use('/api/v1/listings', ListingRouter);
 // User bookmarks functionality
 app.use('/api/v1/bookmarks', bookmarkRoutes);
-// Chat interface views
-app.use('/chat', ChatViewController);
+
 // Category management endpoints
 app.use('/api/v1/category', CategoryRouter);
 // Order processing endpoints

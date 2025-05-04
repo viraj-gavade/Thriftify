@@ -1,8 +1,21 @@
+/**
+ * @fileoverview Listing routes for managing product listings
+ * Defines all API endpoints related to listing creation, management, and retrieval
+ */
+
+// Express framework for creating route handlers
 const express = require('express');
-const Listingrouter = express.Router();
-const upload = require('../Middlewares/multer.middleware'); // your multer config
-const Listing = require('../Schemas/listings.schemas'); // your mongoose model
-const { CreateListing ,
+const listingRouter = express.Router();
+
+// Multer middleware for handling file uploads (images for listings)
+const upload = require('../Middlewares/multer.middleware');
+
+// Mongoose model for database operations on listings
+const Listing = require('../Schemas/listings.schemas');
+
+// Controller functions for listing operations
+const { 
+    CreateListing,
     GetAllListings, 
     GetSingleListing, 
     UpdateListing, 
@@ -11,23 +24,36 @@ const { CreateListing ,
     GetUserListingById,
     AddToBookmarks,
     RemoveFromBookmarks,
-    GetUserBookmarks
- } = require('../Controllers/listings.controller');
-const VerifyJwt = require('../Middlewares/authentication.middleware');
-const listingsController = require('../Controllers/listings.controller');
-// Upload up to 5 images using the 'images' field
-Listingrouter.post('/', VerifyJwt, upload.array('images', 5), CreateListing);
+    GetUserBookmarks,
+    ToggleBookmark
+} = require('../Controllers/listings.controller');
 
-// Route for rendering the add-listing page
-Listingrouter.get('/add-listing', VerifyJwt, (req, res) => {
+// Authentication middleware to protect routes that require user login
+const verifyJWT = require('../Middlewares/authentication.middleware');
+
+/**
+ * Create a new listing
+ * POST /
+ * Requires authentication and image uploads (up to 5)
+ */
+listingRouter.post('/', verifyJWT, upload.array('images', 5), CreateListing);
+
+/**
+ * Render add listing form page
+ * GET /add-listing
+ */
+listingRouter.get('/add-listing', verifyJWT, (req, res) => {
     res.render('add-listing', {
         title: 'Add New Listing | Thriftify',
         user: req.user // Pass the user data to the template
     });
 });
 
-// Route for fetching all listings with pagination
-Listingrouter.route('/').get(async (req, res) => {
+/**
+ * Get all listings with pagination
+ * GET /?page=1&limit=10
+ */
+listingRouter.route('/').get(async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
@@ -51,7 +77,6 @@ Listingrouter.route('/').get(async (req, res) => {
             listings
         });
     } catch (error) {
-        console.error('Error fetching listings:', error);
         res.status(500).json({ 
             success: false, 
             message: 'Server error while fetching listings' 
@@ -59,11 +84,17 @@ Listingrouter.route('/').get(async (req, res) => {
     }
 });
 
-// Get all listings with sorting options
-Listingrouter.get('/sorted', GetAllListings);
+/**
+ * Get all listings with sorting options
+ * GET /sorted
+ */
+listingRouter.get('/sorted', GetAllListings);
 
-// Search listings by keyword
-Listingrouter.get('/search', async (req, res) => {
+/**
+ * Search listings by keyword and optional category
+ * GET /search?query=search_term&category=optional_category
+ */
+listingRouter.get('/search', async (req, res) => {
     try {
         const { query, category } = req.query;
         
@@ -92,7 +123,6 @@ Listingrouter.get('/search', async (req, res) => {
             listings
         });
     } catch (error) {
-        console.error('Error searching listings:', error);
         res.status(500).json({ 
             success: false, 
             message: 'Server error while searching listings' 
@@ -100,32 +130,58 @@ Listingrouter.get('/search', async (req, res) => {
     }
 });
 
-// Get user bookmarks
-Listingrouter.get('/user/bookmarks', VerifyJwt, GetUserBookmarks);
+/**
+ * Get user's bookmarked listings
+ * GET /user/bookmarks
+ */
+listingRouter.get('/user/bookmarks', verifyJWT, GetUserBookmarks);
 
-// Get a single listing by ID
-Listingrouter.get('/:id',VerifyJwt, GetSingleListing);
+/**
+ * Get a single listing by ID
+ * GET /:id
+ */
+listingRouter.get('/:id', verifyJWT, GetSingleListing);
 
-// Update a listing by ID
-Listingrouter.patch('/:id', VerifyJwt, upload.array('images', 5), UpdateListing);
+/**
+ * Update a listing by ID
+ * PATCH /:id
+ */
+listingRouter.patch('/:id', verifyJWT, upload.array('images', 5), UpdateListing);
 
-// Delete a listing by ID
-Listingrouter.delete('/:id', VerifyJwt, DeleteListing);
+/**
+ * Delete a listing by ID
+ * DELETE /:id
+ */
+listingRouter.delete('/:id', verifyJWT, DeleteListing);
 
-// Get all listings for the authenticated user
-Listingrouter.get('/user/listings', VerifyJwt, GetUserListings);
+/**
+ * Get all listings created by the authenticated user
+ * GET /user/listings
+ */
+listingRouter.get('/user/listings', verifyJWT, GetUserListings);
 
-// Get a single listing by ID for the authenticated user
-Listingrouter.get('/user/listings/:id', VerifyJwt, GetUserListingById);
+/**
+ * Get a specific listing created by the authenticated user
+ * GET /user/listings/:id
+ */
+listingRouter.get('/user/listings/:id', verifyJWT, GetUserListingById);
 
-// Add a listing to bookmarks
-Listingrouter.post('/user/bookmarks', VerifyJwt, AddToBookmarks);
+/**
+ * Add a listing to user's bookmarks
+ * POST /user/bookmarks
+ */
+listingRouter.post('/user/bookmarks', verifyJWT, AddToBookmarks);
 
-// Remove a listing from bookmarks
-Listingrouter.delete('/user/bookmarks', VerifyJwt, RemoveFromBookmarks);
+/**
+ * Remove a listing from user's bookmarks
+ * DELETE /user/bookmarks
+ */
+listingRouter.delete('/user/bookmarks', verifyJWT, RemoveFromBookmarks);
 
-// Default route for category page - redirects to "others" category by default
+/**
+ * Toggle bookmark status for a listing
+ * POST /bookmarks/toggle
+ */
+listingRouter.post('/bookmarks/toggle', verifyJWT, ToggleBookmark);
 
-
-Listingrouter.post('/bookmarks/toggle', VerifyJwt, listingsController.ToggleBookmark);
-module.exports = Listingrouter;
+module.exports = listingRouter;

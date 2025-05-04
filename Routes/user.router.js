@@ -1,124 +1,181 @@
-const express = require('express');
-const User = require('../Schemas/user.schemas'); // Import the User model
-const UserRouter = express.Router();
-const upload = require('../Middlewares/multer.middleware'); // Import middleware for file uploads
-const { registerUser, loginUser, logoutUser, getUser, UpdateDetails, UpdateProfilePic, changeCurrentPassword } = require('../Controllers/user.controllers'); // Import user controller functions
-const VerifyJwt = require('../Middlewares/authentication.middleware');
+/**
+ * @fileoverview User routes for authentication and profile management
+ * Handles user registration, login, profile updates, and related user operations
+ */
 
-// Add this line to import the Listing model if not already imported
+// Express framework for creating route handlers
+const express = require('express');
+const userRouter = express.Router();
+
+// User model for database operations on user accounts
+const User = require('../Schemas/user.schemas');
+
+// Multer middleware for handling profile picture uploads
+const upload = require('../Middlewares/multer.middleware');
+
+// User controller functions that implement route logic
+const { 
+    registerUser, 
+    loginUser, 
+    logoutUser, 
+    getUser, 
+    UpdateDetails, 
+    UpdateProfilePic, 
+    changeCurrentPassword 
+} = require('../Controllers/user.controllers');
+
+// Authentication middleware to protect routes that require user login
+const verifyJWT = require('../Middlewares/authentication.middleware');
+
+// Listing model for populating user's listings in profile
 const Listing = require('../Schemas/listings.schemas');
+
+// Utility for handling async functions in Express routes
 const asyncHandler = require('../utils/asynchandler');
 
-UserRouter.route('/').get((req, res) => {
+/**
+ * Test route to check if user router is working
+ * GET /
+ */
+userRouter.route('/').get((req, res) => {
     res.status(200).json({ message: 'User router path working' });
 });
-UserRouter.route('/signup')
+
+/**
+ * User registration route
+ * GET - Renders signup form
+ * POST - Processes user registration with file upload
+ */
+userRouter.route('/signup')
     .get((req, res) => {
         res.render('signup');
     })
-    .post( 
+    .post(
         upload.fields([
             { name: 'profilepic', maxCount: 1 },
-        ]), 
+        ]),
         registerUser
     );
 
-// Signin route: renders the signin page and handles user login
-UserRouter.route('/login')
+/**
+ * User login route
+ * GET - Renders login form
+ * POST - Processes user login
+ */
+userRouter.route('/login')
     .get((req, res) => {
         res.render('login');
     })
     .post(loginUser);
 
-// Logout route: handles user logout
-UserRouter.route('/logout').get(logoutUser);
+/**
+ * User logout route
+ * GET - Processes user logout and clears authentication
+ */
+userRouter.route('/logout').get(logoutUser);
 
-// User profile page route
-UserRouter.route('/profile')
-    .get(VerifyJwt, async (req, res) => {
-        try {
-            const user = await User.findById(req.user._id)
-            .populate('listings')
-            .populate({
-              path: 'orders',
-              populate: {
+/**
+ * User profile page route
+ * GET - Renders the user's profile with related data
+ */
+userRouter.route('/profile').get(verifyJWT, asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id)
+        .populate('listings')
+        .populate({
+            path: 'orders',
+            populate: {
                 path: 'listing',
                 select: 'title description price images'
-              }
-            })
-            .populate('Bookmarks');    
-            res.render('profile', {
-              user: user,
-              listings: user.listings,
-              orders: user.orders,
-            });
-          } catch (error) {
-            console.error('Error fetching profile:', error);
-            res.status(500).json({ error: 'Error loading profile' });
-          }
+            }
+        })
+        .populate('Bookmarks');
+    
+    res.render('profile', {
+        user: user,
+        listings: user.listings,
+        orders: user.orders,
     });
+}));
 
-UserRouter.route('/profile/:id').get(getUser);
+/**
+ * Get user by ID
+ * GET /profile/:id
+ */
+userRouter.route('/profile/:id').get(getUser);
 
-UserRouter.route('/update-details').patch(VerifyJwt,UpdateDetails);
+/**
+ * Update user details
+ * PATCH /update-details
+ */
+userRouter.route('/update-details').patch(verifyJWT, UpdateDetails);
 
-UserRouter.route('/update-password').patch(VerifyJwt,changeCurrentPassword);
+/**
+ * Update user password
+ * PATCH /update-password
+ */
+userRouter.route('/update-password').patch(verifyJWT, changeCurrentPassword);
 
-UserRouter.route('/update-profilepic')
-    .patch( 
+/**
+ * Update user profile picture
+ * PATCH /update-profilepic
+ */
+userRouter.route('/update-profilepic')
+    .patch(
         upload.fields([
             { name: 'profilepic', maxCount: 1 },
-        ]), 
-       VerifyJwt, UpdateProfilePic
+        ]),
+        verifyJWT,
+        UpdateProfilePic
     );
 
-UserRouter.route('/bookmarks').get(VerifyJwt, async (req, res) => {
-    try {
-        // Get user data from req.user set by VerifyJwt middleware
-        const user = await req.user.populate('Bookmarks');
-        
-        // Return bookmarks as a simple array for easier processing in frontend
-        const bookmarks = user.Bookmarks.map(bookmark => ({
-            listingId: bookmark._id,
-            title: bookmark.title,
-            // Include any other fields you might need
-        }));
-        
-        res.status(200).json(bookmarks);
-    } catch (error) {
-        console.error('Error fetching bookmarks:', error);
-        res.status(500).json({ error: 'Error loading bookmarks' });
+/**
+ * Get user bookmarks
+ * GET /bookmarks
+ * Returns simplified bookmark list for frontend use
+ */
+userRouter.route('/bookmarks').get(verifyJWT, asyncHandler(async (req, res) => {
+    // Get user data with populated bookmarks
+    const user = await req.user.populate('Bookmarks');
+    
+    // Format bookmarks for frontend consumption
+    const bookmarks = user.Bookmarks.map(bookmark => ({
+        listingId: bookmark._id,
+        title: bookmark.title,
+    }));
+    
+    res.status(200).json(bookmarks);
+}));
+
+/**
+ * Get user orders
+ * GET /my-orders
+ * Returns list of user's orders
+ */
+userRouter.route('/my-orders').get(verifyJWT, asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id).populate('orders');
+    
+    if (!user) {
+        return res.status(404).json({ message: 'User not found' });
     }
-});
+    
+    res.status(200).json(user.orders);
+}));
 
-
-UserRouter.route('my-orders').get(async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id).populate('orders');
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-        res.status(200).json(user.orders);
-    } catch (error) {
-        console.error('Error fetching user orders:', error);
-        res.status(500).json({ error: 'Error fetching user orders' });
+/**
+ * Check user authentication status
+ * GET /check-auth
+ * Returns user data if authenticated
+ */
+userRouter.route('/check-auth').get(verifyJWT, asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id)
+        .populate('listings')
+        .populate('Bookmarks');
+    
+    if (!user) {
+        return res.status(401).json({ message: 'Unauthorized' });
     }
-}
-)
-// Add this new route for toggling bookmarks
+    
+    res.status(200).json({ user });
+}));
 
-UserRouter.route('/check-auth').get(VerifyJwt, async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id).populate('listings').populate('Bookmarks');
-        if (!user) {
-            return res.status(401).json({ message: 'Unauthorized' });
-        }
-        res.status(200).json({ user });
-    } catch (error) {
-        console.error('Error checking authentication:', error);
-        res.status(500).json({ error: 'Error checking authentication' });
-    }
-}
-);
-
-module.exports = UserRouter;
+module.exports = userRouter;

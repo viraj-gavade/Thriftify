@@ -1,22 +1,43 @@
-const express = require('express');
-const CategoryRouter = express.Router();
-const VerifyJwt = require('../Middlewares/authentication.middleware');
-const Listing = require('../Schemas/listings.schemas'); // Import the Listing model
+/**
+ * @fileoverview Category routes for browsing listings by category
+ * Handles category-specific page rendering and filtering
+ */
 
-CategoryRouter.get('/',VerifyJwt, (req, res) => {
+// Express framework for creating route handlers
+const express = require('express');
+const categoryRouter = express.Router();
+
+// Authentication middleware to protect routes that require user login
+const verifyJWT = require('../Middlewares/authentication.middleware');
+
+// Mongoose model for database operations on listings
+const Listing = require('../Schemas/listings.schemas');
+
+/**
+ * Default category route - redirects to "others" category
+ * GET /
+ */
+categoryRouter.get('/', verifyJWT, (req, res) => {
     res.redirect('/api/v1/category/others');
 });
 
-// Route to display listings by category
-CategoryRouter.get('/:category', VerifyJwt, async (req, res) => {
+/**
+ * Display listings filtered by category with optional price filtering and sorting
+ * GET /:category?sort=sort_option&min=min_price&max=max_price
+ * 
+ * @param {string} req.params.category - Category name to filter by
+ * @param {string} req.query.sort - Optional sorting method (price-low, price-high)
+ * @param {number} req.query.min - Optional minimum price filter
+ * @param {number} req.query.max - Optional maximum price filter
+ */
+categoryRouter.get('/:category', verifyJWT, async (req, res) => {
     try {
         const { category } = req.params;
-        console.log('Category:', category); // Log the category for debugging
         const validCategories = ['electronics', 'furniture', 'clothing', 'books', 'others'];
         
         // Validate category
         if (!validCategories.includes(category)) {
-            return res.redirect('/category/others'); // Redirect to others instead of showing error
+            return res.redirect('/category/others'); // Redirect to others category
         }
         
         // Get query parameters for filtering
@@ -55,11 +76,10 @@ CategoryRouter.get('/:category', VerifyJwt, async (req, res) => {
             category,
             listings,
             title: `${category.charAt(0).toUpperCase() + category.slice(1)} | Thriftify`,
-            user: req.user, // Pass the user data to the template
+            user: req.user
         });
         
     } catch (error) {
-        console.error('Error fetching category listings:', error);
         res.status(500).render('error', { 
             message: 'Error loading category page',
             error: { status: 500 }
@@ -67,4 +87,4 @@ CategoryRouter.get('/:category', VerifyJwt, async (req, res) => {
     }
 });
 
-module.exports = CategoryRouter;
+module.exports = categoryRouter;
