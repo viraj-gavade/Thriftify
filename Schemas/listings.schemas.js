@@ -1,5 +1,15 @@
+/**
+ * @fileoverview Listing schema for product listings in Thriftify marketplace
+ * Defines the data structure for product listings including validation and methods
+ */
+
+// Mongoose ODM for MongoDB schema definition and validation
 const mongoose = require('mongoose');
 
+/**
+ * Schema for marketplace listings
+ * Includes product details, pricing, categorization, and relationship data
+ */
 const ListingSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -53,7 +63,12 @@ const ListingSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
-// Add a method to check if a user has bookmarked this listing
+/**
+ * Checks if a listing is bookmarked by a specific user
+ * 
+ * @param {string} userId - MongoDB ObjectId of the user to check
+ * @returns {boolean} True if the listing is bookmarked by the user
+ */
 ListingSchema.methods.isBookmarkedBy = function(userId) {
     return this.bookmarkedBy.includes(userId);
 };

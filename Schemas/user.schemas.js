@@ -1,7 +1,21 @@
+/**
+ * @fileoverview User schema for Thriftify marketplace
+ * Defines the data structure for user accounts with authentication methods
+ */
+
+// Mongoose ODM for MongoDB schema definition and validation
 const mongoose = require('mongoose');
+
+// Bcrypt library for password hashing and comparison
 const bcryptjs = require('bcryptjs');
+
+// JWT library for token generation and verification
 const jwt = require('jsonwebtoken');
 
+/**
+ * Schema for user accounts
+ * Includes personal details, authentication data, and relationship references
+ */
 const UserSchema = new mongoose.Schema({
     username: { 
         type: String, 
@@ -68,37 +82,40 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
-
-
 }, { timestamps: true });
 
-
-// Middleware to hash the user's password before saving to the database
+/**
+ * Pre-save middleware to hash passwords
+ * Only runs when password field is modified
+ */
 UserSchema.pre('save', async function (next) {
-    // If the password is not modified, skip hashing
+    // Skip hashing if password hasn't changed
     if (!this.isModified('password')) {
         return next();
     }
 
-    // Generate a salt with 10 rounds
+    // Generate salt and hash password
     const salt = await bcryptjs.genSalt(10);
-    
-    // Hash the password using the salt
     this.password = await bcryptjs.hash(this.password, salt);
-    
-    // Proceed to save the user
     next();
 });
 
-// Instance method to compare the provided password with the stored hashed password
+/**
+ * Verifies if provided password matches stored hash
+ * 
+ * @param {string} password - Plain text password to verify
+ * @returns {Promise<boolean>} True if password matches
+ */
 UserSchema.methods.isPasswordCorrect = async function (password) {
-    // Compare the plain text password with the hashed password in the database
     return await bcryptjs.compare(password, this.password);
 };
 
-// Instance method to generate an access token for the user
+/**
+ * Generates short-lived JWT access token
+ * 
+ * @returns {Promise<string>} JWT access token
+ */
 UserSchema.methods.createAccestoken = async function () {
-    // Create a JWT access token containing user data (user ID, username, fullname, email)
     const accessToken = await jwt.sign({
         _id: this._id,
         username: this.username,
@@ -106,23 +123,26 @@ UserSchema.methods.createAccestoken = async function () {
         email: this.email,
         profilepic: this.profilepic
     }, process.env.ACCESS_TOKEN_SECRETE, {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRY // Set the expiry time for the token
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRY
     });
-    return accessToken; // Return the generated access token
+    return accessToken;
 };
 
-// Instance method to generate a refresh token for the user
+/**
+ * Generates long-lived JWT refresh token
+ * 
+ * @returns {Promise<string>} JWT refresh token
+ */
 UserSchema.methods.createRefreshtoken = async function () {
-    // Create a JWT refresh token containing more user data for better identification
     const refreshToken = jwt.sign({
         _id: this._id,
         username: this.username,
         fullname: this.fullname,
         email: this.email
     }, process.env.REFRESH_TOKEN_SECRETE, {
-        expiresIn: process.env.REFRESH_TOKEN_EXPIRY // Set the expiry time for the refresh token
+        expiresIn: process.env.REFRESH_TOKEN_EXPIRY
     });
-    return refreshToken; // Return the generated refresh token
+    return refreshToken;
 };
 
 const UserModel = mongoose.model('User', UserSchema);
