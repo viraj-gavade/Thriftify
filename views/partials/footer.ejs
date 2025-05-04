@@ -1,4 +1,4 @@
-  <!-- Footer -->
+<!-- Footer -->
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-column">
@@ -14,11 +14,11 @@
       <div class="footer-column">
         <h3>Categories</h3>
         <ul>
-          <li><a href="/categories/electronics">Electronics</a></li>
-          <li><a href="/categories/furniture">Furniture</a></li>
-          <li><a href="/categories/clothing">Clothing</a></li>
-          <li><a href="/categories/books">Books</a></li>
-          <li><a href="/categories/others">Others</a></li>
+          <li><a href="/api/v1/category/electronics">Electronics</a></li>
+          <li><a href="/api/v1/category/furniture">Furniture</a></li>
+          <li><a href="/api/v1/category/clothing">Clothing</a></li>
+          <li><a href="/api/v1/category/books">Books</a></li>
+          <li><a href="/api/v1/category/others">Others</a></li>
         </ul>
       </div>
       
@@ -49,8 +49,91 @@
     </div>
     
     <div class="footer-bottom">
-      <p>&copy; 2023 Thriftify. All rights reserved.</p>
+      <p>&copy; <%= new Date().getFullYear() %> Thriftify. All rights reserved.</p>
     </div>
+    
+    <style>
+      .footer {
+        background: #2c3e50;
+        color: white;
+        padding: 40px 0 20px;
+        margin-top: 50px;
+        width: 100%;
+      }
+      
+      .footer-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 30px;
+        padding: 0 20px;
+        width: 100%;
+      }
+      
+      .footer-column h3 {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+        color: #3498db;
+      }
+      
+      .footer-column ul {
+        list-style: none;
+        padding: 0;
+      }
+      
+      .footer-column ul li {
+        margin-bottom: 10px;
+      }
+      
+      .footer-column a {
+        color: #ecf0f1;
+        text-decoration: none;
+        transition: all 0.3s;
+        display: inline-block;
+      }
+      
+      .social-icons {
+        display: flex;
+        gap: 15px;
+        margin-top: 15px;
+      }
+      
+      .footer-bottom {
+        text-align: center;
+        padding-top: 30px;
+        margin-top: 30px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        color: #95a5a6;
+        font-size: 0.9rem;
+      }
+      
+      @media (max-width: 768px) {
+        .footer {
+          padding: 30px 0 15px;
+        }
+        
+        .footer-container {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
+          padding: 0 15px;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .footer-container {
+          grid-template-columns: 1fr;
+        }
+        
+        .footer-column {
+          text-align: center;
+        }
+        
+        .social-icons {
+          justify-content: center;
+        }
+      }
+    </style>
   </footer>
 </body>
 </html>

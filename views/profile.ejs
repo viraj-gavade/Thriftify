@@ -214,6 +214,105 @@
             background-color: #95a5a6;
             cursor: not-allowed;
         }
+
+        /* Add responsive styles */
+        .profile-container {
+            max-width: 1000px;
+            width: 100%;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .profile-header {
+            flex-wrap: wrap;
+        }
+        
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .listings-grid {
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        }
+        
+        @media (max-width: 768px) {
+            .profile-container {
+                padding: 1rem;
+            }
+            
+            .profile-header {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 1rem;
+            }
+            
+            .tabs {
+                overflow-x: auto;
+                justify-content: flex-start;
+                padding-bottom: 5px;
+            }
+            
+            .tab {
+                min-width: 90px;
+                white-space: nowrap;
+            }
+            
+            .listings-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .profile-container {
+                padding: 0.5rem;
+            }
+            
+            .profile-pic {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .profile-info h1 {
+                font-size: 1.3rem;
+            }
+            
+            .profile-username {
+                font-size: 1rem;
+            }
+            
+            .tabs {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+            
+            .listings-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-group label {
+                font-size: 0.9rem;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .profile-pic {
+                width: 100px;
+                height: 100px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -846,7 +945,14 @@
                     fetch(`/api/v1/listings/${listingId}`, {
                         method: 'DELETE'
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.message || 'Failed to delete listing');
+                            });
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         // Restore button state
                         deleteButton.textContent = originalText;
@@ -867,10 +973,34 @@
                         deleteButton.disabled = false;
                         
                         console.error('Error:', error);
-                        showNotification('An error occurred while deleting the listing.', 'error');
+                        
+                        // Display specific message for sold listings
+                        if (error.message.includes('Cannot delete a sold listing')) {
+                            showNotification('Cannot delete a sold listing. Sold listings are part of order history.', 'warning');
+                        } else {
+                            showNotification('An error occurred while deleting the listing: ' + error.message, 'error');
+                        }
                     });
                 }
             });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Make tabs scrollable on mobile
+            const tabs = document.querySelector('.tabs');
+            if (tabs) {
+                // Add scroll indicators if tabs overflow
+                const checkOverflow = () => {
+                    if (tabs.scrollWidth > tabs.clientWidth) {
+                        tabs.classList.add('has-overflow');
+                    } else {
+                        tabs.classList.remove('has-overflow');
+                    }
+                };
+                
+                window.addEventListener('resize', checkOverflow);
+                checkOverflow();
+            }
         });
     </script>
 </body>

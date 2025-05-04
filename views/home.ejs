@@ -535,7 +535,8 @@
       }
       
       #listings {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
       }
       
       .add-product-btn {
@@ -543,6 +544,65 @@
         right: 20px;
         width: 50px;
         height: 50px;
+      }
+      
+      .listing-actions {
+        flex-direction: column;
+      }
+      
+      .modal-content {
+        width: 95%;
+        max-height: 85vh;
+      }
+    }
+    
+    @media (max-width: 576px) {
+      #listings {
+        grid-template-columns: 1fr;
+      }
+      
+      .container {
+        padding: 10px;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+        margin: 20px 0;
+      }
+      
+      .listing-image {
+        height: 180px;
+      }
+      
+      .listing-details h2 {
+        font-size: 1.1rem;
+      }
+      
+      .price {
+        font-size: 1.2rem;
+      }
+      
+      .footer-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+      }
+    }
+    
+    @media (max-width: 380px) {
+      .footer-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .listing-meta {
+        flex-direction: column;
+        gap: 5px;
+        align-items: flex-start;
+      }
+      
+      .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
       }
     }
   </style>
@@ -1055,5 +1115,96 @@
     // Load listings initially
     window.onload = fetchListings;
   </script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add responsive meta tag if not already present
+    if (!document.querySelector('meta[name="viewport"]')) {
+      const meta = document.createElement('meta');
+      meta.setAttribute('name', 'viewport');
+      meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+      document.head.appendChild(meta);
+    }
+    
+    // Add responsive styles
+    const responsiveStyles = `
+      @media (max-width: 768px) {
+        #listings {
+          grid-template-columns: repeat(2, 1fr) !important;
+          gap: 15px !important;
+        }
+        
+        .listing-image {
+          height: 160px !important;
+        }
+        
+        .add-product-btn {
+          bottom: 15px !important;
+          right: 15px !important;
+          width: 50px !important;
+          height: 50px !important;
+        }
+        
+        .listing-actions {
+          flex-direction: column !important;
+        }
+        
+        .modal-content {
+          width: 95% !important;
+          max-width: 95% !important;
+        }
+        
+        .listing-details h2 {
+          font-size: 1.1rem !important;
+        }
+        
+        .price {
+          font-size: 1.2rem !important;
+        }
+      }
+      
+      @media (max-width: 576px) {
+        #listings {
+          grid-template-columns: 1fr !important;
+        }
+        
+        .container {
+          padding: 10px !important;
+        }
+        
+        h1 {
+          font-size: 1.5rem !important;
+          margin: 15px 0 !important;
+        }
+        
+        .filters {
+          padding: 15px !important;
+        }
+      }
+      
+      @media (max-width: 380px) {
+        .listing-meta {
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap: 5px !important;
+        }
+        
+        .filter-item {
+          width: 100% !important;
+        }
+        
+        .form-group input, 
+        .form-group select, 
+        .form-group textarea {
+          font-size: 0.9rem !important;
+        }
+      }
+    `;
+    
+    // Add these styles to the page
+    const style = document.createElement('style');
+    style.textContent = responsiveStyles;
+    document.head.appendChild(style);
+  });
+</script>
 </body>
 </html>

@@ -70,82 +70,6 @@
             40% {transform: translateY(-30px);}
             60% {transform: translateY(-15px);}
         }
-    </style>
-</head>
-<body>
-    <%- include('partials/header') %>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Successful | Thriftify</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        .payment-success-container {
-            max-width: 600px;
-            margin: 100px auto;
-            padding: 30px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        
-        .success-icon {
-            font-size: 80px;
-            color: #2ecc71;
-            margin-bottom: 20px;
-            animation: bounce 1s ease;
-        }
-        
-        .order-status {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 25px 0;
-        }
-        
-        .status-badge {
-            background-color: #2ecc71;
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            display: inline-block;
-        }
-        
-        .action-buttons {
-            margin-top: 30px;
-        }
-        
-        .btn {
-            padding: 10px 20px;
-            margin: 0 10px;
-            border-radius: 5px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .btn-primary {
-            background-color: #3498db;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background-color: #2980b9;
-        }
-        
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-            40% {transform: translateY(-30px);}
-            60% {transform: translateY(-15px);}
-        }
         
         /* Added accessibility styles */
         .payment-success-container {
@@ -218,10 +142,64 @@
                 margin: 20px auto;
             }
         }
+        
+        .success-container {
+            max-width: 600px;
+            width: 95%;
+            margin: 2rem auto;
+            padding: 2rem;
+            text-align: center;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .success-icon {
+            font-size: 5rem;
+            color: #27ae60;
+            margin-bottom: 1rem;
+        }
+        
+        .success-container h1 {
+            margin-bottom: 1rem;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 1rem;
+            min-height: 44px;
+            font-size: 1rem;
+        }
+        
+        @media (max-width: 576px) {
+            .success-container {
+                padding: 1.5rem;
+                width: 90%;
+                margin: 1rem auto;
+            }
+            
+            .success-icon {
+                font-size: 4rem;
+            }
+            
+            .success-container h1 {
+                font-size: 1.5rem;
+            }
+            
+            .btn {
+                width: 100%;
+                padding: 12px;
+            }
+        }
     </style>
 </head>
 <body>
-    
+    <%- include('partials/header') %>
     <div class="container">
         <div class="payment-success-container">
             <i class="fas fa-check-circle success-icon" aria-label="Payment successful"></i>

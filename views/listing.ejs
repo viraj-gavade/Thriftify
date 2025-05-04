@@ -276,6 +276,112 @@
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
+        
+        /* Add to existing styles */
+        .product-container {
+            max-width: 1100px;
+            width: 100%;
+            margin: 30px auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .image-slider {
+            flex: 1;
+            min-width: 300px;
+            width: 100%;
+        }
+        
+        .product-details {
+            flex: 1;
+            min-width: 300px;
+            width: 100%;
+        }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .product-container {
+                padding: 15px;
+                margin: 15px auto;
+                gap: 20px;
+            }
+            
+            .image-slider {
+                height: 300px;
+            }
+            
+            .product-details h1 {
+                font-size: 1.5rem;
+            }
+            
+            .price {
+                font-size: 1.3rem;
+            }
+            
+            .action-links {
+                flex-direction: column;
+            }
+            
+            .action-link {
+                width: 100%;
+                margin-bottom: 10px;
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .product-container {
+                padding: 10px;
+            }
+            
+            .image-slider {
+                height: 250px;
+            }
+            
+            .detail-row strong {
+                min-width: 100px;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 5% auto;
+            }
+            
+            .form-group label {
+                font-size: 0.9rem;
+            }
+            
+            input[type="text"],
+            input[type="tel"],
+            textarea {
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .image-slider {
+                height: 220px;
+            }
+            
+            .product-details h1 {
+                font-size: 1.3rem;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+                align-items: flex-start;
+                margin-bottom: 15px;
+            }
+            
+            .detail-row strong {
+                margin-bottom: 5px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -740,9 +846,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Handle order form submission
+    // Handle order form submission - Remove this duplicate handler
     if (orderForm) {
-        orderForm.addEventListener('submit', async function(e) {
+        // Remove existing event listeners if any
+        const clonedForm = orderForm.cloneNode(true);
+        orderForm.parentNode.replaceChild(clonedForm, orderForm);
+        
+        // Add our single event listener
+        clonedForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             // Disable submit button to prevent double-submission
@@ -764,14 +875,27 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 console.log('Submitting order data:', formData);
                 
-                // Update the API endpoint to match the backend route
-                const response = await fetch('/api/v1/orders/create', {
+                // Try both endpoints to handle different API configurations
+                let endpoint = '/api/v1/orders/create';
+                let response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(formData)
                 });
+                
+                // If first endpoint fails, try the fallback
+                if (!response.ok && response.status === 404) {
+                    endpoint = '/api/v1/orders';
+                    response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                }
                 
                 const result = await response.json();
                 console.log('Server response:', result);
@@ -780,20 +904,51 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Close the order form modal
                     orderFormModal.classList.remove('active');
                     
-                    // Check if we have a paypalLink in the response
-                    const paypalLink = result.message?.paypalLink;
+                    // Get paypal link from different possible response formats
+                    const paypalLink = result.paypalLink || 
+                                      (result.message && result.message.paypalLink) || 
+                                      (result.order && result.order.paypalLink) ||
+                                      (result.message && result.message.order && result.message.order.paypalLink);
                     
                     if (paypalLink) {
-                        // Redirect directly to PayPal for payment
-                        window.location.href = paypalLink;
+                        // Set the PayPal link in the button first
+                        const paypalButton = document.getElementById('paypalLink');
+                        if (paypalButton) {
+                            paypalButton.href = paypalLink;
+                        }
+                        
+                        // Display order ID in success modal if available
+                        const orderId = result.orderId || 
+                                      (result.message && result.message.orderId) || 
+                                      (result.order && result.order._id) ||
+                                      (result.message && result.message.order && result.message.order._id);
+                        
+                        if (orderId) {
+                            document.getElementById('displayOrderId').textContent = orderId;
+                        }
+                        
+                        // Show success modal before redirecting
+                        orderSuccessModal.style.display = 'flex';
+                        
+                        // Redirect after a short delay
+                        setTimeout(() => {
+                            window.location.href = paypalLink;
+                        }, 1500);
                     } else {
                         // Display order ID in success modal
-                        document.getElementById('displayOrderId').textContent = result.message?.order?._id || 'Unknown';
+                        const orderId = result.orderId || 
+                                      (result.message && result.message.orderId) || 
+                                      (result.order && result.order._id) ||
+                                      (result.message && result.message.order && result.message.order._id) || 
+                                      'Unknown';
+                        
+                        document.getElementById('displayOrderId').textContent = orderId;
                         
                         // Show success modal if no direct PayPal link
                         orderSuccessModal.style.display = 'flex';
                     }
                 } else {
+                    console.error('Error response:', result);
                     alert('Error creating order: ' + (result.message || 'Unknown error'));
                     // Re-enable submit button
                     submitBtn.disabled = false;
@@ -821,6 +976,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check for touch events to optimize slider controls for mobile
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    if (isTouchDevice) {
+      // Make controls easier to tap
+      const sliderButtons = document.querySelectorAll('.slider-buttons button');
+      sliderButtons.forEach(button => {
+        button.style.width = '50px';
+        button.style.height = '50px';
+      });
+      
+      // Add swipe functionality for image slider
+      const sliderImage = document.getElementById('sliderImage');
+      if (sliderImage) {
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        sliderImage.addEventListener('touchstart', e => {
+          touchStartX = e.changedTouches[0].screenX;
+        });
+        
+        sliderImage.addEventListener('touchend', e => {
+          touchEndX = e.changedTouches[0].screenX;
+          handleSwipe();
+        });
+        
+        function handleSwipe() {
+          if (touchEndX < touchStartX - 50) {
+            // Swipe left - next image
+            nextImage();
+          } else if (touchEndX > touchStartX + 50) {
+            // Swipe right - previous image
+            prevImage();
+          }
+        }
+      }
+    }
+  });
 </script>
 
 <style>
