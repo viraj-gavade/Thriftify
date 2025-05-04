@@ -1,13 +1,26 @@
+/**
+ * @fileoverview API response formatter
+ * Standardizes response format across the application
+ */
+
+/**
+ * Creates a standardized API response object
+ */
 class ApiResponse {
-    constructor(statusCode, message = 'success', data, successOverride = null) {
-        // Initialize the class properties based on the parameters
-        this.statusCode = statusCode;   // The HTTP status code (e.g., 200, 400, 500)
-        this.message = message;         // The response message (defaults to 'success')
-        this.data = data;               // The actual data to be sent in the response (e.g., user data, result)
-
-        // If `successOverride` is provided, use that. Otherwise, default to statusCode logic.
-    }
+  /**
+   * Constructs a standardized API response
+   * 
+   * @param {number} statusCode - HTTP status code
+   * @param {string} message - Response message
+   * @param {any} data - Response payload data
+   * @param {boolean|null} successOverride - Optional success flag override
+   */
+  constructor(statusCode, message = 'success', data = null, successOverride = null) {
+    this.statusCode = statusCode;
+    this.message = message;
+    this.data = data;
+    this.success = successOverride !== null ? successOverride : statusCode < 400;
+  }
 }
-
 
 module.exports = ApiResponse;

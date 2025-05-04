@@ -1,49 +1,59 @@
+/**
+ * @fileoverview Cloudinary file upload utility
+ * Handles image upload to Cloudinary and local file cleanup
+ */
 
-const { v2 } = require('cloudinary'); // Import the Cloudinary v2 SDK
-const fs = require('fs'); // Import the fs (file system) module to interact with files
+// Cloudinary SDK for cloud-based image and video management
+// Used for uploading and transforming images
+const { v2 } = require('cloudinary');
 
-// Configure Cloudinary with your account's credentials (stored in environment variables)
+// File system module for managing local files
+// Used to remove temporary files after upload
+const fs = require('fs');
+
+/**
+ * Configure Cloudinary with credentials from environment variables
+ */
 v2.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, // Cloud name for your Cloudinary account
-  api_key: process.env.CLOUDINARY_API_KEY, // API key for Cloudinary
-  api_secret: process.env.CLOUDINARY_SECRETE_KEY // API secret for Cloudinary
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_SECRETE_KEY
 });
 
-// Function to upload a file to Cloudinary
-const uploadFile = async (Filepath) => {
+/**
+ * Uploads a file to Cloudinary and removes the local copy
+ * 
+ * @param {string} filePath - Local path to the file to upload
+ * @returns {Object|null} Cloudinary response with file details or null if upload fails
+ */
+const uploadFile = async (filePath) => {
   try {
-    // If no file path is provided, return null (indicating no file to upload)
-    if (!Filepath) {
+    // Return null if no file path is provided
+    if (!filePath) {
       return null;
     }
 
-    // Attempt to upload the file to Cloudinary using its uploader API
-    const response = await v2.uploader.upload(Filepath, {
-      resource_type: 'auto', // Automatically detect the resource type (image, video, etc.)
+    // Upload file to Cloudinary with automatic resource type detection
+    const response = await v2.uploader.upload(filePath, {
+      resource_type: 'auto',
     });
 
-    // Check if the file exists on the local filesystem before attempting to delete it
-    if (fs.existsSync(Filepath)) {
-      // Delete the file from the local system after it's uploaded to Cloudinary
-      fs.unlinkSync(Filepath); // Synchronously removes the file
+    // Remove the local file after successful upload
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
     }
 
-    // Return the Cloudinary response, which includes file details like URL, public ID, etc.
+    // Return Cloudinary response with file details
     return response;
   } catch (error) {
-    // In case of any errors during the upload process, log the error message
-    console.error('Error uploading file:', error);
-
-    // Ensure that the file is deleted from the local system even if an error occurs
-    if (fs.existsSync(Filepath)) {
-      // Delete the file from the local system
-      fs.unlinkSync(Filepath);
+    // Ensure local file cleanup even if upload fails
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
     }
 
-    // Return null to indicate that the upload failed
+    // Return null to indicate upload failure
     return null;
   }
 };
 
-// Export the uploadFile function so it can be used in other parts of the application
 module.exports = uploadFile;

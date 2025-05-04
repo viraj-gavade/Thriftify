@@ -1,9 +1,20 @@
+/**
+ * @fileoverview Environment variable configuration loader
+ * Centralizes access to environment variables for database connection
+ */
+
+// dotenv for loading environment variables from .env file
+// Used to make environment variables available via process.env
 require('dotenv').config();
 
- const MONGO_URI = process.env.MONGO_URI;
- const DB_NAME = process.env.DB_NAME;
+// MongoDB connection URI from environment variables
+const MONGO_URI = process.env.MONGO_URI;
 
- module.exports = {
-     MONGO_URI,
-     DB_NAME,
- }
+// Database name from environment variables
+const DB_NAME = process.env.DB_NAME;
+
+// Export constants for use in database connection
+module.exports = {
+    MONGO_URI,
+    DB_NAME,
+};
