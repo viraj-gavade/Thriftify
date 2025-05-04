@@ -604,6 +604,7 @@
         bookmarkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         bookmarkBtn.disabled = true;
         
+        window.href = '/api/v1/listings/<%= listing._id %>';
         // Check if user is logged in first (optional)
         fetch('/api/v1/user/check-auth')
             .then(response => {

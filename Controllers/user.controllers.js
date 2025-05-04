@@ -45,7 +45,11 @@ const registerUser = asyncHandler(async (req, res) => {
         $or: [{ username }, { email }]
     })
     if (exstinguser) {
-        throw new CustomApiError(409, 'User already exists')
+        return res.status(409).json({
+            status: 'fail',
+            message: 'Username or email already taken!'
+        })  
+
     }
 
     // Check if the profilepic file was uploaded, and throw an error if not

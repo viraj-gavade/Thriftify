@@ -72,6 +72,17 @@
       box-shadow: 0 0 5px rgba(52,152,219,0.3);
     }
 
+    .form-group input.error {
+      border-color: #ff5f6d;
+      box-shadow: 0 0 5px rgba(255, 95, 109, 0.3);
+    }
+    
+    .error-message {
+      color: #ff5f6d;
+      font-size: 0.8rem;
+      margin-top: 5px;
+    }
+
     .file-input {
       margin-top: 10px;
     }
@@ -160,7 +171,7 @@
     <form action="/api/v1/user/signup" method="POST" enctype="multipart/form-data">
       <div class="form-group">
         <label for="fullname">Full Name</label>
-        <input type="text" id="fullname" name="fullname" placeholder="Enter your full name" required>
+        <input  type="text" id="fullname" name="fullname" placeholder="Enter your full name" required >
       </div>
       
       <div class="form-group">
@@ -222,21 +233,68 @@
           redirect: 'follow'
         })
         .then(response => {
-          if (response.ok) {
-            showToast('Account created successfully! Redirecting...', 'success');
-            setTimeout(() => {
-              window.location.href = '/api/v1/user/login';
-            }, 2000);
-          } else if (response.redirected) {
-            window.location.href = response.url;
-          } else {
-            // If not redirected, probably has an error
-            showToast('An error occurred during signup. Please try again.', 'error');
+          try {
+            if (response.ok) {
+              showToast('Account created successfully! Redirecting...', 'success');
+              setTimeout(() => {
+                window.location.href = '/api/v1/user/login';
+              }, 2000);
+            } else if (response.redirected) {
+              window.location.href = response.url;
+            } else {
+              console.log("Response status:", response.status);
+              
+              // Handle different error status codes
+              if(response.status === 409 || response.status === 400) {
+                // Clone response before parsing
+                response.clone().json()
+                  .then(data => {
+                    console.log("Error data:", data);
+                    
+                    // Handle validation errors (could be an array of errors or a single message)
+                    if (data && data.errors && Array.isArray(data.errors)) {
+                      // Display each validation error as a separate toast
+                      data.errors.forEach(err => {
+                        showToast(err.message || err, 'error');
+                      });
+                      
+                      // Highlight fields with errors
+                      highlightInvalidFields(data.errors);
+                    } else if (data && data.message) {
+                      // Single error message
+                      showToast(data.message, 'error');
+                    } else {
+                      // Fallback if no message in response
+                      showToast('Invalid input. Please check your information and try again.', 'error');
+                    }
+                  })
+                  .catch(err => {
+                    console.log('Could not parse response as JSON:', err);
+                    showToast('An error occurred validating your information.', 'error');
+                  });
+              } else {
+                response.text().then(text => {
+                  try {
+                    const data = JSON.parse(text);
+                    showToast(data.message || 'Failed to create account', 'error');
+                  } catch (e) {
+                    showToast('Failed to create account', 'error');
+                  }
+                }).catch(() => {
+                  showToast('An error occurred. Please try again.', 'error');
+                });
+              }
+            }
+          } catch (error) {
+            showToast('An error occurred. Please try again.', 'error');
+            console.log(error);
+            console.error('Error:', error.message);
           }
         })
         .catch(error => {
           showToast('An error occurred. Please try again.', 'error');
-          console.error('Error:', error);
+          console.log('Error:', error);
+          console.error('Error:', error.message);
         });
       });
       
@@ -251,6 +309,60 @@
           className: type,
           stopOnFocus: true
         }).showToast();
+      }
+      
+      // Function to highlight fields with validation errors
+      function highlightInvalidFields(errors) {
+        // First, reset all fields to normal state
+        const allInputs = document.querySelectorAll('input');
+        allInputs.forEach(input => {
+          input.classList.remove('error');
+          
+          // Remove any existing error message
+          const errorMsg = input.parentNode.querySelector('.error-message');
+          if (errorMsg) errorMsg.remove();
+        });
+        
+        // Map validation errors to form fields
+        errors.forEach(error => {
+          const fieldName = error.field || getFieldFromErrorMessage(error.message || error);
+          if (!fieldName) return;
+          
+          const field = document.querySelector(`input[name="${fieldName}"]`) || 
+                        document.getElementById(fieldName);
+          
+          if (field) {
+            // Add error class to the field
+            field.classList.add('error');
+            
+            // Add error message below the field
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = error.message || error;
+            field.parentNode.appendChild(errorDiv);
+          }
+        });
+      }
+      
+      // Helper function to extract field name from error message
+      function getFieldFromErrorMessage(message) {
+        if (!message) return null;
+        
+        const fieldMap = {
+          'username': 'username',
+          'email': 'email',
+          'password': 'password',
+          'fullname': 'fullname',
+          'confirmPassword': 'confirm_password',
+          'profilepic': 'profilepic'
+        };
+        
+        for (const [key, value] of Object.entries(fieldMap)) {
+          if (message.toLowerCase().includes(key.toLowerCase())) {
+            return value;
+          }
+        }
+        return null;
       }
       
       // Check for URL parameters for messages
