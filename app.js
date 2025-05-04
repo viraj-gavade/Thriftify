@@ -1,6 +1,5 @@
 const express = require('express');
 const http = require('http'); // For Socket.IO
-const { Server } = require('socket.io');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
@@ -10,27 +9,40 @@ const Listing = require('./Schemas/listings.schemas');
 
 // Routers
 const UserRouter = require('./Routes/user.router');
+/**
+ * Listing router - Handles all listing/product related API endpoints
+ */
 const ListingRouter = require('./Routes/listing.router');
-const ChatRouter = require('./Routes/chat.router'); 
+/**
+ * Chat view controller - Manages chat UI rendering and interactions
+ */
 const ChatViewController = require('./Routes/chat.view.router'); 
+/**
+ * Async handler utility - Wraps async route handlers for error handling
+ */
 const asyncHandler = require('./utils/asynchandler');
+/**
+ * Bookmark routes - Manages user bookmark functionality
+ */
 const bookmarkRoutes = require('./Routes/bookmark.router');
-
-// Import routes
-const chatRoutes = require('./Routes/chat.router');
+/**
+ * Order routes - Handles payment and order processing
+ */
 const orderRoutes = require('./Routes/orders.routes');
 
 // Initialize app and server
+/**
+ * Initialize Express application
+ */
 const app = express();
-const server = http.createServer(app); // Attach server to app
 
-// Setup Socket.IO
-const io = new Server(server, {
-  cors: {
-    origin: '*', // Update this in production
-    methods: ['GET', 'POST']
-  }
-});
+/**
+ * Create HTTP server for Express application
+ * This allows the Express app to handle HTTP requests
+ */
+const server = http.createServer(app); // Create HTTP server for Express
+
+// Remove Socket.IO setup as it's not being used
 
 // Setup Middleware
 app.use(express.json());
@@ -61,36 +73,7 @@ app.use((req, res, next) => {
 });
 
 // Chat socket handling
-const chatHandler = require('./socket/chatHandler');
 const CategoryRouter = require('./Routes/category.router');
-
-// Socket.IO setup
-io.on('connection', (socket) => {
-  console.log('🟢 User connected:', socket.id);
-  
-  // Handle socket authentication with JWT
-  socket.on('authenticate', async (token) => {
-    try {
-      // Verify the token
-      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
-      const userId = decoded._id;
-      
-      // Set user ID on the socket object
-      socket.userId = userId;
-      console.log('User authenticated:', userId);
-      
-      // Initialize chat handler
-      chatHandler(io, socket);
-    } catch (error) {
-      console.error('Socket authentication error:', error);
-    }
-  });
-  
-  // When a user disconnects
-  socket.on('disconnect', () => {
-    console.log('🔴 User disconnected:', socket.id);
-  });
-});
 
 // Routes
 app.get('/', asyncHandler(async(req, res) => {
@@ -115,39 +98,70 @@ app.get('/', asyncHandler(async(req, res) => {
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
     const user = req.user; // Get user from JWT middleware
 
-    // Build query object dynamically
+    /**
+     * Home route handler - Fetches and displays listings with optional filters
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
+     * @returns {Object} Rendered home page with listings
+     */
+    // Build query object dynamically based on filter parameters
     const query = {};
     if (category) query.category = category;
     if (location) query.location = location;
 
-    // Find and sort
-    const listings = await Listing.find(query)
-      .populate('postedBy', 'fullname email')
-      .sort({ [sortBy]: sortOrder });
+    try {
+      // Fetch listings with filters and sorting applied
+      const listings = await Listing.find(query)
+        .populate('postedBy', 'fullname email')
+        .sort({ [sortBy]: sortOrder });
 
-    if (!listings.length) {
-      return res.render('home', { listings: [] });
+      // Render home page with listings (empty array if none found)
+      return res.status(200).render('home', { 
+        listings: listings || [],
+        filters: { category, location, sortBy, sortOrder } // Pass filters for potential UI state
+      });
+    } catch (error) {
+      // Log error for server-side debugging but don't expose details to client
+      console.error('Error fetching listings:', error);
+      return res.status(500).render('home', { 
+        listings: [],
+        error: 'Failed to load listings. Please try again later.'
+      });
     }
-
-   return res.status(200).render('home', { listings: listings });
   } catch (error) {
     console.error('Error fetching listings:', error);
   }
- 
-}));
+    // Remove redundant outer catch that doesn't handle errors properly
+    return res.status(500).render('home', {
+      listings: [],
+      error: 'An unexpected error occurred'
+    });
+  }
+));
 
+/**
+ * API Routes Configuration
+ * Registers all API endpoints with their respective routers
+ */
+// User management endpoints
 app.use('/api/v1/user', UserRouter);
+// Listing/product management endpoints
 app.use('/api/v1/listings', ListingRouter);
+// User bookmarks functionality
 app.use('/api/v1/bookmarks', bookmarkRoutes);
-app.use('/api/chat', ChatRouter);
-app.use('/chat', ChatViewController); 
-app.use('/api/v1/category', CategoryRouter); 
+// Chat interface views
+app.use('/chat', ChatViewController);
+// Category management endpoints
+app.use('/api/v1/category', CategoryRouter);
+// Order processing endpoints
 app.use('/api/v1/orders', orderRoutes);
 
-// Register routes
-
-
-// Chat route to load the chat page
+/**
+ * Renders the chat interface page
+ * Adds authenticated user to template context if available
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
 app.get('/api/v1/chat', (req, res) => {
   // Get authentication token and set user in locals for template
   const token = req.cookies.token;
@@ -165,13 +179,6 @@ app.get('/api/v1/chat', (req, res) => {
   res.status(200).render('chat.ejs');
 });
 
-// app.get('/payment-cancel', (req, res) => {
-  
-// });
-
-// app.get('/payment-success', (req, res) => {
-//   res.render('payment-success');
-// });
 
 app.get('/payment-cancel', (req, res) => {
   // Get authentication token and set user in locals for template
@@ -257,19 +264,24 @@ app.get('/payment-cancel', (req, res) => {
   res.render('payment-cancel');
 });
 
-// Authentication routes to serve login and signup pages
-
-
-
-
-// DB connect + server boot
+/**
+ * Database Connection and Server Initialization
+ * Establishes MongoDB connection and starts the HTTP server
+ * 
+ * @returns {Promise<void>} - Resolves when connection is successful and server is running
+ * @throws {Error} - If database connection fails, application exits with status code 1
+ */
 const ConnectDB = async () => {
   try {
+    // Connect to MongoDB using the imported connector utility
     await connectdb();
+    
+    // Start the HTTP server once database connection is successful
     server.listen(process.env.PORT || 3000, () => {
       console.log(`🚀 Server is running on port ${process.env.PORT || 3000}`);
     });
   } catch (error) {
+    // Log the error and exit the process with a failure code
     console.error('❌ DB connection error:', error);
     process.exit(1);
   }
