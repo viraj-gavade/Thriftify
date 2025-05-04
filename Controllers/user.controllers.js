@@ -193,7 +193,6 @@ const logoutUser = asyncHandler(async (req, res) => {
             secure: true,
             sameSite: 'Strict',
             path: '/',
-            domain: req.hostname.includes('localhost') ? 'localhost' : req.hostname
         };
         
         // Clear cookies and redirect
