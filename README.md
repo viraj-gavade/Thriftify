@@ -1,38 +1,44 @@
-# Thriftify
+# Thriftify 🛒
 
 Thriftify is an online marketplace platform for buying and selling second-hand items, promoting sustainability through reuse and reducing waste.
 
-## Demo
+![Thriftify](https://res.cloudinary.com/thriftify/image/upload/v1/thriftify/site/thriftify_logo.png)
 
-[Live Demo](https://thriftify-demo.herokuapp.com)
+## 🚀 Demo
 
-## Features
+[Live Demo](https://thriftify.onrender.com/)
 
-- **User Authentication:** Secure registration and login system
-- **Product Listings:** Create, view, update, and delete listings
-- **Categories:** Browse items by categories
+## ✨ Features
+
+- **User Authentication:** Secure registration and login system with JWT
+- **Product Listings:** Create, view, update, and delete listings with image uploads
+- **Categories:** Browse items by categories (electronics, furniture, clothing, books, others)
 - **Search & Filters:** Find items by location, category, price, etc.
 - **Bookmarks:** Save favorite items for later
 - **Messaging:** Real-time chat between buyers and sellers
-- **Payment Integration:** Secure checkout with PayPal
+- **Payment Integration:** Secure checkout with PayPal/Razorpay
 - **Order Management:** Track purchases and sales
 - **Responsive Design:** Works on desktop and mobile devices
+- **User Profiles:** Customizable user profiles with profile pictures
 
-## Tech Stack
+## 💻 Tech Stack
 
 ### Backend
 - Node.js
 - Express.js
 - MongoDB (Mongoose)
 - JWT for authentication
-- PayPal API for payment integration
+- Cloudinary for image storage
+- PayPal/Razorpay API for payment integration
+- Swagger for API documentation
 
 ### Frontend
 - EJS templates
 - JavaScript
 - CSS
+- Responsive design components
 
-## Installation
+## 🔧 Installation
 
 ### Prerequisites
 - Node.js (v14+)
@@ -57,6 +63,9 @@ npm install
 PORT=3000
 MONGODB_URI=mongodb://localhost:27017/thriftify
 ACCESS_TOKEN_SECRETE=your_jwt_secret_key
+CLOUDINARY_CLOUD_NAME=your_cloudinary_name
+CLOUDINARY_API_KEY=your_cloudinary_key
+CLOUDINARY_API_SECRET=your_cloudinary_secret
 PAYPAL_CLIENT_ID=your_paypal_client_id
 PAYPAL_CLIENT_SECRET=your_paypal_client_secret
 ```
@@ -66,18 +75,39 @@ PAYPAL_CLIENT_SECRET=your_paypal_client_secret
 npm start
 ```
 
-5. Visit `http://localhost:3000` in your browser
+5. For development with auto-reload:
+```bash
+npm run dev
+```
 
-## API Documentation
+6. Visit `http://localhost:3000` in your browser
 
-### User Endpoints
+## 📚 API Documentation
+
+Thriftify provides comprehensive API documentation using Swagger UI.
+
+### Accessing Swagger Documentation
+
+When running the application locally, you can access the Swagger documentation at:
+```
+http://localhost:3000/api-docs
+```
+
+You can also access the Swagger documentation on the deployed version:
+```
+https://thriftify.onrender.com/api-docs
+```
+
+### Key Endpoints
+
+#### User Endpoints
 
 - **POST /api/v1/user/register** - Register a new user
 - **POST /api/v1/user/login** - Login and receive authentication token
 - **GET /api/v1/user/profile** - Get current user profile
 - **PUT /api/v1/user/profile** - Update user profile
 
-### Listing Endpoints
+#### Listing Endpoints
 
 - **GET /api/v1/listings** - Get all listings with optional filters
 - **POST /api/v1/listings** - Create a new listing
@@ -85,34 +115,35 @@ npm start
 - **PUT /api/v1/listings/:id** - Update a listing
 - **DELETE /api/v1/listings/:id** - Delete a listing
 
-### Bookmark Endpoints
+#### Bookmark Endpoints
 
 - **GET /api/v1/bookmarks** - Get all bookmarks for current user
 - **POST /api/v1/bookmarks/:listingId** - Add a listing to bookmarks
 - **DELETE /api/v1/bookmarks/:listingId** - Remove a listing from bookmarks
 
-### Category Endpoints
+#### Order Endpoints
 
-- **GET /api/v1/category** - Get all categories
-- **POST /api/v1/category** - Create a new category (admin only)
-
-### Order Endpoints
-
+- **POST /api/v1/orders/create** - Create a new order
 - **GET /api/v1/orders** - Get all orders for current user
-- **POST /api/v1/orders** - Create a new order
-- **GET /api/v1/orders/:id** - Get order details
+- **GET /api/v1/orders/:id** - Get specific order details
 
-### Chat Endpoint
+#### Category Endpoints
 
-- **GET /api/v1/chat** - Access the chat interface
+- **GET /api/v1/category/:category** - Get listings by category
 
-## Database Schema
+#### Support Endpoint
+
+- **POST /api/v1/support/submit** - Submit a support request
+
+## 🗄️ Database Schema
 
 ### User
 
-- `fullname`: String
+- `username`: String (unique)
 - `email`: String (unique)
+- `fullname`: String
 - `password`: String (hashed)
+- `profilepic`: String
 - `createdAt`: Date
 - `updatedAt`: Date
 
@@ -121,7 +152,7 @@ npm start
 - `title`: String
 - `description`: String
 - `price`: Number
-- `category`: ObjectId (reference to Category)
+- `category`: String (enum: electronics, furniture, clothing, books, others)
 - `location`: String
 - `images`: [String]
 - `postedBy`: ObjectId (reference to User)
@@ -141,16 +172,13 @@ npm start
 - `listing`: ObjectId (reference to Listing)
 - `seller`: ObjectId (reference to User)
 - `paymentId`: String
+- `shippingInfo`: Object
+- `paymentMethod`: String
 - `status`: String (pending, completed, cancelled)
 - `createdAt`: Date
 - `updatedAt`: Date
 
-### Category
-
-- `name`: String
-- `description`: String
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 thriftify/
@@ -176,12 +204,39 @@ thriftify/
 │   ├── index.ejs
 │   ├── payment-cancel.ejs
 │   └── payment-success.ejs
+├── public/
+│   ├── css/
+│   ├── js/
+│   └── images/
 ├── app.js
+├── swagger.js
+├── .env.example
 ├── package.json
 └── README.md
 ```
 
-## Contributing
+## 🚀 Deployment
+
+Thriftify is deployed on Render:
+
+- **Production URL**: [https://thriftify.onrender.com](https://thriftify.onrender.com)
+
+### Deployment Steps:
+
+1. Create a new Web Service on Render
+2. Connect your GitHub repository
+3. Add environment variables in the Render dashboard
+4. Set the build command to `npm install`
+5. Set the start command to `npm start`
+
+## 🔒 Authentication
+
+Thriftify uses JSON Web Tokens (JWT) for authentication:
+- Tokens are stored in HTTP-only cookies for security
+- Protected routes require valid authentication
+- User sessions expire after a configured period
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -189,6 +244,31 @@ thriftify/
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 📞 Contact
+
+Project Link: [https://github.com/yourusername/thriftify](https://github.com/yourusername/thriftify)
+
+### Connect with Me
+- 📸 Instagram: [@yourinstagram](https://instagram.com/yourinstagram)
+- 🐦 Twitter: [@yourtwitter](https://twitter.com/yourtwitter)
+- 💼 LinkedIn: [Your Name](https://linkedin.com/in/yourlinkedin)
+
+## 📷 Screenshots
+
+Here are some screenshots of the Thriftify application:
+
+### Homepage
+![Homepage](./screenshots/homepage.png)
+
+### Product Listing
+![Product Listing](./screenshots/product-listing.png)
+
+### User Dashboard
+![User Dashboard](./screenshots/user-dashboard.png)
+
+### Payment Gateway
+![payment View](./screenshots/payment-view.png)

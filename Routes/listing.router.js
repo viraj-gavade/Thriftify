@@ -59,7 +59,7 @@ listingRouter.route('/').get(async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
         
-        const listings = await Listing.find({ isSold: false })
+        const listings = await Listing.find()
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)

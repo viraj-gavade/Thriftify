@@ -29,6 +29,11 @@ const orderRoutes = require('./Routes/orders.router');
 const CategoryRouter = require('./Routes/category.router');
 const SearchRouter = require('./Routes/search.router'); // Add this line
 
+// Import Swagger packages and our swagger spec
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
+const SupportRouter = require('./Routes/support.router');
+
 // Initialize app and server
 /**
  * Initialize Express application
@@ -52,6 +57,13 @@ app.use(cors());
 // Set view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// Serve Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Thriftify API Documentation'
+}));
 
 // Authentication middleware to pass user data to templates
 app.use((req, res, next) => {
@@ -205,6 +217,10 @@ app.use('/api/v1/category', CategoryRouter);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/search', SearchRouter); // Add this line to register the search route
 
+// Support routes
+app.use('/support', SupportRouter);
+app.use('/api/v1/support', SupportRouter);
+
 /**
  * Renders the chat interface page
  * Adds authenticated user to template context if available
@@ -249,14 +265,9 @@ app.get('/payment-cancel', (req, res) => {
 app.get('/success', (req, res) => {
   const { token } = req.query; // ?token=...
 
-  console.log("Token from query:", token);
-
   try {
-    
-    console.log('✅ I am in payment success page');
-
     if (token) {
-     console.log('entering payment success page with token:');
+     
       // Redirect to capture payment route
       return res.redirect(`/api/v1/orders/payment/capture?token=${token}`);
     } else {
