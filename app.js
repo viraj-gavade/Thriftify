@@ -26,6 +26,8 @@ const bookmarkRoutes = require('./Routes/bookmark.router');
  * Order routes - Handles payment and order processing
  */
 const orderRoutes = require('./Routes/orders.router');
+const CategoryRouter = require('./Routes/category.router');
+const SearchRouter = require('./Routes/search.router'); // Add this line
 
 // Initialize app and server
 /**
@@ -69,8 +71,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Chat socket handling
-const CategoryRouter = require('./Routes/category.router');
 
 // Routes
 app.get('/', asyncHandler(async(req, res) => {
@@ -89,52 +89,104 @@ app.get('/', asyncHandler(async(req, res) => {
       res.locals.user = null;
     }
 
-    const sortBy = req.query.sortBy || 'createdAt';
-    const category = req.query.category;
-    const location = req.query.location;
-    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
-    const user = req.user; // Get user from JWT middleware
-
-    /**
-     * Home route handler - Fetches and displays listings with optional filters
-     * @param {Object} req - Express request object
-     * @param {Object} res - Express response object
-     * @returns {Object} Rendered home page with listings
-     */
-    // Build query object dynamically based on filter parameters
-    const query = {};
-    if (category) query.category = category;
-    if (location) query.location = location;
-
-    try {
-      // Fetch listings with filters and sorting applied
-      const listings = await Listing.find(query)
-        .populate('postedBy', 'fullname email')
-        .sort({ [sortBy]: sortOrder });
-
-      // Render home page with listings (empty array if none found)
-      return res.status(200).render('home', { 
-        listings: listings || [],
-        filters: { category, location, sortBy, sortOrder } // Pass filters for potential UI state
-      });
-    } catch (error) {
-      // Log error for server-side debugging but don't expose details to client
-      console.error('Error fetching listings:', error);
-      return res.status(500).render('home', { 
-        listings: [],
-        error: 'Failed to load listings. Please try again later.'
-      });
+    // Extract all query parameters
+    const query = req.query.query || '';
+    const category = req.query.category || '';
+    const location = req.query.location || '';
+    const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
+    const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const skip = (page - 1) * limit;
+    
+    // Determine sort options based on sortBy parameter
+    let sortBy = req.query.sortBy || 'newest';
+    let sortOptions = { createdAt: -1 }; // default newest first
+    
+    switch(sortBy) {
+      case 'oldest':
+        sortOptions = { createdAt: 1 };
+        break;
+      case 'price-asc':
+        sortOptions = { price: 1 };
+        break;
+      case 'price-desc':
+        sortOptions = { price: -1 };
+        break;
+      default:
+        sortOptions = { createdAt: -1 };
     }
+
+    // Build search query object
+    const searchQuery = {};
+    
+    // Add text search if query parameter exists
+    if (query) {
+      searchQuery.$or = [
+        { title: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } }
+      ];
+    }
+    
+    // Add category filter if provided
+    if (category) {
+      searchQuery.category = category;
+    }
+    
+    // Add location filter if provided
+    if (location) {
+      searchQuery.location = location;
+    }
+    
+    // Add price range filters if provided
+    if (minPrice !== null || maxPrice !== null) {
+      searchQuery.price = {};
+      if (minPrice !== null) searchQuery.price.$gte = minPrice;
+      if (maxPrice !== null) searchQuery.price.$lte = maxPrice;
+    }
+
+    // Get categories and locations for filter dropdowns
+    const categories = await Listing.distinct('category');
+    const locations = await Listing.distinct('location');
+    
+    // Fetch listings with search, filters and sorting applied
+    const listings = await Listing.find(searchQuery)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit)
+      .populate('postedBy', 'fullname email');
+      
+    // Count total matching results for pagination
+    const total = await Listing.countDocuments(searchQuery);
+
+    // Render home page with listings and filters
+    return res.status(200).render('home', { 
+      listings: listings || [],
+      categories,
+      locations,
+      filters: { 
+        query, 
+        category, 
+        location, 
+        minPrice, 
+        maxPrice, 
+        sortBy 
+      },
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('Error fetching listings:', error);
-  }
-    // Remove redundant outer catch that doesn't handle errors properly
     return res.status(500).render('home', {
       listings: [],
       error: 'An unexpected error occurred'
     });
   }
-));
+}));
 
 /**
  * API Routes Configuration
@@ -151,6 +203,7 @@ app.use('/api/v1/bookmarks', bookmarkRoutes);
 app.use('/api/v1/category', CategoryRouter);
 // Order processing endpoints
 app.use('/api/v1/orders', orderRoutes);
+app.use('/search', SearchRouter); // Add this line to register the search route
 
 /**
  * Renders the chat interface page

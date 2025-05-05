@@ -605,6 +605,56 @@
         gap: 10px;
       }
     }
+    
+    /* Search Bar Styles */
+    .search-bar {
+      width: 100%;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    
+    .search-bar input {
+      width: 100%;
+      padding: 15px 20px;
+      padding-left: 50px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    
+    .search-bar input:focus {
+      outline: none;
+      box-shadow: 0 2px 20px rgba(52, 152, 219, 0.3);
+    }
+    
+    .search-bar i {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #95a5a6;
+      font-size: 18px;
+    }
+    
+    .search-bar .clear-search {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #7f8c8d;
+      cursor: pointer;
+      font-size: 16px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+    }
+    
+    .search-bar input:not(:placeholder-shown) + .clear-search {
+      opacity: 1;
+      visibility: visible;
+    }
   </style>
 </head>
 <body>
@@ -613,6 +663,29 @@
 
   <div class="container">
     <h1>Discover Amazing Deals</h1>
+    
+    <!-- Search Bar -->
+    <div class="search-bar">
+      <form id="searchForm" action="/search" method="GET">
+        <input type="text" id="searchInput" name="q" placeholder="Search for items..." value="<%= filters?.query || '' %>">
+        <i class="fas fa-search"></i>
+        <button type="submit" style="display:none;"></button>
+        
+        <!-- Hidden fields to preserve filter state when submitting -->
+        <% if(locals.filters) { %>
+          <% if(filters.category) { %>
+            <input type="hidden" name="category" value="<%= filters.category %>">
+          <% } %>
+          <% if(filters.location) { %>
+            <input type="hidden" name="location" value="<%= filters.location %>">
+          <% } %>
+          <% if(filters.sortBy) { %>
+            <input type="hidden" name="sortBy" value="<%= filters.sortBy %>">
+          <% } %>
+        <% } %>
+      </form>
+      <span class="clear-search" id="clearSearch">&times;</span>
+    </div>
 
     <div class="filters">
       <div class="filter-item">
@@ -648,13 +721,21 @@
     <div id="listings">
       <!-- Listings will load here -->
     </div>
+
+    <!-- No Results Message (hidden by default) -->
+    <div id="noResults" style="display: none; text-align: center; padding: 40px 0;">
+      <i class="fas fa-search" style="font-size: 48px; color: #95a5a6; margin-bottom: 20px;"></i>
+      <h2 style="color: #7f8c8d; margin-bottom: 10px;">No Results Found</h2>
+      <p style="color: #95a5a6;">Try adjusting your search or filters to find what you're looking for.</p>
+      <button id="resetSearchBtn" style="margin-top: 20px;" class="buyNowBtn">Clear Search</button>
+    </div>
   </div>
   
   <!-- Add Product Button -->
   <div class="add-product-btn" id="addProductBtn">
     <i class="fas fa-plus"></i>
   </div>
-  
+
   <!-- Add Product Modal -->
   <div class="modal" id="addProductModal">
     <div class="modal-content">
@@ -668,17 +749,14 @@
             <label for="title">Title *</label>
             <input type="text" id="title" name="title" required>
           </div>
-          
           <div class="form-group">
             <label for="description">Description *</label>
             <textarea id="description" name="description" required></textarea>
           </div>
-          
           <div class="form-group">
             <label for="price">Price (₹) *</label>
             <input type="number" id="price" name="price" min="1" required>
           </div>
-          
           <div class="form-group">
             <label for="itemCategory">Category *</label>
             <select id="itemCategory" name="category" required>
@@ -690,18 +768,15 @@
               <option value="others">Others</option>
             </select>
           </div>
-          
           <div class="form-group">
             <label for="itemLocation">Location *</label>
             <input type="text" id="itemLocation" name="location" required>
           </div>
-          
           <div class="form-group">
             <label for="images">Images (Max 5) *</label>
             <input type="file" id="images" name="images" accept="image/*" multiple required>
             <div class="image-preview" id="imagePreview"></div>
           </div>
-          
           <button type="submit" class="submit-btn">List Item</button>
         </form>
       </div>
@@ -757,22 +832,28 @@
         </p>
       </div>
     </div>
-    
     <div class="footer-bottom">
       <p>&copy; 2023 Thriftify. All rights reserved.</p>
     </div>
   </footer>
 
   <script>
+    // Global variable to store all fetched listings
+    let allListings = [];
+    let currentSearchQuery = "";
+
     // Fetch and display listings
     async function fetchListings() {
       const category = document.getElementById('category').value;
       const location = document.getElementById('location').value;
       const sortOrder = document.getElementById('sortOrder').value;
+      const searchQuery = document.getElementById('searchInput').value.trim();
+      currentSearchQuery = searchQuery;
 
       let query = `?sortOrder=${sortOrder}`;
       if (category) query += `&category=${encodeURIComponent(category)}`;
       if (location) query += `&location=${encodeURIComponent(location)}`;
+      if (searchQuery) query += `&query=${encodeURIComponent(searchQuery)}`;
 
       try {
         // First try to get the user's bookmarks, but don't block if it fails
@@ -794,72 +875,93 @@
         if (!res.ok) {
           throw new Error(`Failed to fetch listings: ${res.status}`);
         }
-        
         const data = await res.json();
-
-        const listingsDiv = document.getElementById('listings');
-        listingsDiv.innerHTML = '';
-
-        if (!Array.isArray(data) || data.length === 0) {
-          listingsDiv.innerHTML = '<p id="noData">No listings found. Try different filters or add your own item.</p>';
-          return;
-        }
-
-        data.forEach(listing => {
-          // Check if this listing is bookmarked by the user - improve matching logic
-          const isBookmarked = userBookmarks.some(bookmark => 
-            bookmark.listingId === listing._id || 
-            bookmark._id === listing._id ||
-            (bookmark.listing && bookmark.listing._id === listing._id)
-          );
-          const bookmarkIcon = isBookmarked ? 'fas fa-bookmark' : 'far fa-bookmark';
-          const bookmarkText = isBookmarked ? 'Bookmarked' : 'Bookmark';
-          const bookmarkClass = isBookmarked ? 'bookmarkBtn bookmarked' : 'bookmarkBtn';
-
-          const div = document.createElement('div');
-          div.className = 'listing';
-          div.innerHTML = `
-            <div class="listing-image">
-              <img src="${listing.images && listing.images.length ? listing.images[0] : 'https://via.placeholder.com/400x300?text=No+Image'}" alt="${listing.title || 'Product'}">
-            </div>
-            <div class="listing-details">
-              <h2>${listing.title || 'No Title'}</h2>
-              <p class="listing-description">${listing.description || 'No Description'}</p>
-              <div class="price">₹${listing.price || 'N/A'}</div>
-              <div class="listing-meta">
-                <span><i class="fas fa-tag"></i> ${listing.category || 'N/A'}</span>
-                <span><i class="fas fa-map-marker-alt"></i> ${listing.location || 'N/A'}</span>
-              </div>
-              <div class="posted-by">
-                <i class="fas fa-user-circle"></i> ${listing.postedBy?.fullname || 'Unknown'} 
-              </div>
-              <div class="listing-actions">
-                <button class="buyNowBtn" data-id="${listing._id}"><i class="fas fa-shopping-cart"></i> Buy Now</button>
-                <button class="${bookmarkClass}" id="bookmarkBtn-${listing._id}" data-id="${listing._id}"><i class="${bookmarkIcon}"></i> ${bookmarkText}</button>
-              </div>
-            </div>
-          `;
-          listingsDiv.appendChild(div);
-        });
-
-        // Add event listeners for buttons
-        document.querySelectorAll('.buyNowBtn').forEach(btn => {
-          btn.addEventListener('click', function() {
-            const listingId = this.getAttribute('data-id');
-            handleBuyNow(listingId);
-          });
-        });
-
-        document.querySelectorAll('.bookmarkBtn').forEach(btn => {
-          btn.addEventListener('click', function() {
-            const listingId = this.getAttribute('data-id');
-            handleBookmark(listingId);
-          });
-        });
+        allListings = Array.isArray(data) ? data : [];
+        displayListings(allListings, userBookmarks);
       } catch (error) {
         console.log('Error fetching listings:', error);
         document.getElementById('listings').innerHTML = '<p id="noData">No Listings are currently available.</p>';
+        
+        // Hide the no results element
+        document.getElementById('noResults').style.display = 'none';
       }
+    }
+        
+    // Function to display listings
+    function displayListings(listings, userBookmarks = []) {
+      const listingsDiv = document.getElementById('listings');
+      const noResultsDiv = document.getElementById('noResults');
+      listingsDiv.innerHTML = '';
+      if (!Array.isArray(listings) || listings.length === 0) {
+        if (currentSearchQuery) {
+          // Show the no results found UI
+          listingsDiv.style.display = 'none';
+          noResultsDiv.style.display = 'block';
+        } else {
+          // Show standard no listings message
+          listingsDiv.innerHTML = '<p id="noData">No listings found. Try different filters or add your own item.</p>';
+          listingsDiv.style.display = 'grid';
+          noResultsDiv.style.display = 'none';
+        }
+        return;
+      }
+      // Show listings and hide no results message
+      listingsDiv.style.display = 'grid';
+      noResultsDiv.style.display = 'none';
+
+      listings.forEach(listing => {
+        // Check if this listing is bookmarked by the user - improve matching logic
+        const isBookmarked = userBookmarks.some(bookmark => 
+          bookmark.listingId === listing._id || 
+          bookmark._id === listing._id ||
+          (bookmark.listing && bookmark.listing._id === listing._id)
+        );
+        const bookmarkIcon = isBookmarked ? 'fas fa-bookmark' : 'far fa-bookmark';
+        const bookmarkText = isBookmarked ? 'Bookmarked' : 'Bookmark';
+        const bookmarkClass = isBookmarked ? 'bookmarkBtn bookmarked' : 'bookmarkBtn';
+
+        const div = document.createElement('div');
+        div.className = 'listing';
+        div.innerHTML = `
+          <div class="listing-image">
+            <img src="${listing.images && listing.images.length ? listing.images[0] : 'https://via.placeholder.com/400x300?text=No+Image'}" alt="${listing.title || 'Product'}">
+          </div>
+          <div class="listing-details">
+            <h2>${listing.title || 'No Title'}</h2>
+            <p class="listing-description">${listing.description || 'No Description'}</p>
+            <div class="price">₹${listing.price || 'N/A'}</div>
+            <div class="listing-meta">
+              <span><i class="fas fa-tag"></i> ${listing.category || 'N/A'}</span>
+              <span><i class="fas fa-map-marker-alt"></i> ${listing.location || 'N/A'}</span>
+            </div>
+            <div class="posted-by">
+              <i class="fas fa-user-circle"></i> ${listing.postedBy?.fullname || 'Unknown'} 
+            </div>
+            <div class="listing-actions">
+              <button class="buyNowBtn" data-id="${listing._id}"><i class="fas fa-shopping-cart"></i> Buy Now</button>
+              <button class="${bookmarkClass}" id="bookmarkBtn-${listing._id}" data-id="${listing._id}"><i class="${bookmarkIcon}"></i> ${bookmarkText}</button>
+            </div>
+          </div>
+        `;
+        listingsDiv.appendChild(div);
+      });
+
+      // Add event listeners for buttons
+      document.querySelectorAll('.buyNowBtn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          if (this.hasAttribute('data-id')) {
+            const listingId = this.getAttribute('data-id');
+            handleBuyNow(listingId);
+          }
+        });
+      });
+
+      document.querySelectorAll('.bookmarkBtn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const listingId = this.getAttribute('data-id');
+          handleBookmark(listingId);
+        });
+      });
     }
 
     // Handle Buy Now button
@@ -879,11 +981,11 @@
         const button = document.querySelector(`#bookmarkBtn-${listingId}`);
         const originalHTML = button.innerHTML;
         const originalClass = button.className;
-        
+
         // Toggle loading state
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         button.disabled = true;
-        
+
         // Check if user is logged in first
         try {
           const checkLoginResponse = await fetch('/api/v1/user/check-auth');
@@ -897,7 +999,7 @@
           // If auth check fails, try the bookmark operation anyway
           console.log('Auth check error:', err);
         }
-        
+
         // Send an API request to toggle bookmark the listing
         const response = await fetch(`/api/v1/bookmarks/toggle/${listingId}`, {
             method: 'POST',
@@ -906,11 +1008,11 @@
             },
             body: JSON.stringify({ listingId: listingId })
         });
-        
+
         let data;
         let isSuccess = false;
         let isBookmarked = false;
-
+        
         try {
           data = await response.json();
           // Handle the special case where we get a message "Listing bookmarked"
@@ -934,7 +1036,7 @@
 
         // Re-enable button
         button.disabled = false;
-        
+
         // If the bookmark toggle operation was successful
         if (isSuccess) {
             // Update the button appearance based on bookmark status
@@ -945,7 +1047,6 @@
                 button.innerHTML = '<i class="far fa-bookmark"></i> Bookmark';
                 button.className = 'bookmarkBtn';
             }
-            
             // Show a small notification
             showBookmarkNotification(isBookmarked);
         } else {
@@ -953,7 +1054,7 @@
             button.disabled = false;
             button.innerHTML = originalHTML;
             button.className = originalClass;
-            
+
             // Check if we need to redirect for auth issues
             if (response.status === 401) {
                 alert('Please log in to bookmark items');
@@ -964,12 +1065,10 @@
         }
       } catch (error) {
         console.error('Error toggling bookmark:', error);
-        
         // Reset the button to a known good state
         const button = document.querySelector(`#bookmarkBtn-${listingId}`);
         button.disabled = false;
         const isCurrentlyBookmarked = button.classList.contains('bookmarked');
-        
         if (isCurrentlyBookmarked) {
             button.innerHTML = '<i class="fas fa-bookmark"></i> Bookmarked';
         } else {
@@ -977,7 +1076,7 @@
         }
       }
     }
-    
+        
     // Function to show bookmark notification
     function showBookmarkNotification(isBookmarked) {
         const notification = document.createElement('div');
@@ -991,6 +1090,45 @@
             setTimeout(() => notification.remove(), 500);
         }, 2000);
     }
+
+    // Search functionality - use form submission for search route
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+      // Only use input event for real-time filtering on the home page
+      if (window.location.pathname !== '/search') {
+        fetchListings();
+      }
+    });
+
+    // Search form submission
+    document.getElementById('searchForm').addEventListener('submit', function(e) {
+      // Let the form submit naturally to the server-side search route
+      // This ensures proper filtering on the backend
+    });
+
+    // Clear search button functionality
+    document.getElementById('clearSearch').addEventListener('click', function() {
+      document.getElementById('searchInput').value = '';
+      
+      // If on search page, go back to home instead of doing client-side search
+      if (window.location.pathname === '/search' || window.location.pathname.includes('/search')) {
+        window.location.href = '/';
+      } else {
+        // Otherwise do client-side filtering
+        fetchListings();
+      }
+    });
+
+    // Reset search button in "No Results" message
+    document.getElementById('resetSearchBtn').addEventListener('click', function() {
+      document.getElementById('searchInput').value = '';
+      // If on search page, go back to home
+      if (window.location.pathname === '/search' || window.location.pathname.includes('/search')) {
+        window.location.href = '/';
+      } else {
+        // Otherwise do client-side filtering
+        fetchListings();
+      }
+    });
 
     // Add CSS for the notification and bookmark button
     document.head.insertAdjacentHTML('beforeend', `
@@ -1027,91 +1165,6 @@
       </style>
     `);
 
-    // Modal functionality
-    const modal = document.getElementById('addProductModal');
-    const addBtn = document.getElementById('addProductBtn');
-    const closeBtn = document.getElementById('closeModal');
-    
-    addBtn.addEventListener('click', () => {
-      modal.classList.add('active');
-      document.body.style.overflow = 'hidden';
-    });
-    
-    closeBtn.addEventListener('click', () => {
-      modal.classList.remove('active');
-      document.body.style.overflow = '';
-    });
-    
-    // Close modal if clicked outside
-    window.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-      }
-    });
-
-    // Image preview functionality
-    const imageInput = document.getElementById('images');
-    const imagePreview = document.getElementById('imagePreview');
-    
-    imageInput.addEventListener('change', function() {
-      imagePreview.innerHTML = '';
-      
-      if (this.files) {
-        const filesAmount = this.files.length;
-        const maxFiles = 5;
-        
-        for (let i = 0; i < Math.min(filesAmount, maxFiles); i++) {
-          const reader = new FileReader();
-          
-          reader.onload = function(event) {
-            const img = document.createElement('img');
-            img.setAttribute('src', event.target.result);
-            img.setAttribute('class', 'preview-img');
-            imagePreview.appendChild(img);
-          }
-          
-          reader.readAsDataURL(this.files[i]);
-        }
-        
-        if (filesAmount > maxFiles) {
-          alert(`You can only upload a maximum of ${maxFiles} images. Only the first ${maxFiles} will be used.`);
-        }
-      }
-    });
-
-    // Form submission
-    document.getElementById('addProductForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const formData = new FormData(this);
-      
-      try {
-        const response = await fetch('/api/v1/listings', {
-          method: 'POST',
-          body: formData,
-        });
-        
-        if (response.ok) {
-          alert('Your item has been listed successfully!');
-          modal.classList.remove('active');
-          document.body.style.overflow = '';
-          this.reset();
-          imagePreview.innerHTML = '';
-          fetchListings(); // Refresh listings
-        } else {
-          const error = await response.json();
-          alert(`Error: ${error.message || 'Something went wrong'}`);
-        }
-      } catch (error) {
-        console.error('Error adding product:', error);
-        alert('Unable to add your product. Please try again later.');
-      }
-    });
-
-    // Filter button event
-    document.getElementById('filterBtn').addEventListener('click', fetchListings);
-
     // Load listings initially
     window.onload = fetchListings;
   </script>
@@ -1124,7 +1177,7 @@
       meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
       document.head.appendChild(meta);
     }
-    
+
     // Add responsive styles
     const responsiveStyles = `
       @media (max-width: 768px) {
@@ -1132,11 +1185,9 @@
           grid-template-columns: repeat(2, 1fr) !important;
           gap: 15px !important;
         }
-        
         .listing-image {
           height: 160px !important;
         }
-        
         .add-product-btn {
           bottom: 15px !important;
           right: 15px !important;
@@ -1149,7 +1200,7 @@
         }
         
         .modal-content {
-          width: 95% !important;
+          width: 95% !important; 
           max-width: 95% !important;
         }
         
@@ -1166,16 +1217,13 @@
         #listings {
           grid-template-columns: 1fr !important;
         }
-        
-        .container {
-          padding: 10px !important;
+        .container { 
+          padding: 10px !important; 
         }
-        
         h1 {
           font-size: 1.5rem !important;
           margin: 15px 0 !important;
         }
-        
         .filters {
           padding: 15px !important;
         }
@@ -1187,11 +1235,9 @@
           align-items: flex-start !important;
           gap: 5px !important;
         }
-        
         .filter-item {
           width: 100% !important;
         }
-        
         .form-group input, 
         .form-group select, 
         .form-group textarea {
@@ -1199,12 +1245,11 @@
         }
       }
     `;
-    
     // Add these styles to the page
     const style = document.createElement('style');
     style.textContent = responsiveStyles;
     document.head.appendChild(style);
   });
-</script>
+  </script>
 </body>
 </html>
