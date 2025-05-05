@@ -2,7 +2,7 @@
 
 Thriftify is an online marketplace platform for buying and selling second-hand items, promoting sustainability through reuse and reducing waste.
 
-![Thriftify](https://res.cloudinary.com/thriftify/image/upload/v1/thriftify/site/thriftify_logo.png)
+
 
 ## 🚀 Demo
 
@@ -16,9 +16,8 @@ Thriftify is an online marketplace platform for buying and selling second-hand i
 - **Search & Filters:** Find items by location, category, price, etc.
 - **Bookmarks:** Save favorite items for later
 - **Messaging:** Real-time chat between buyers and sellers
-- **Payment Integration:** Secure checkout with PayPal/Razorpay
+- **Payment Integration:** Secure checkout with PayPal
 - **Order Management:** Track purchases and sales
-- **Responsive Design:** Works on desktop and mobile devices
 - **User Profiles:** Customizable user profiles with profile pictures
 
 ## 💻 Tech Stack
@@ -29,7 +28,7 @@ Thriftify is an online marketplace platform for buying and selling second-hand i
 - MongoDB (Mongoose)
 - JWT for authentication
 - Cloudinary for image storage
-- PayPal/Razorpay API for payment integration
+- PayPal API for payment integration
 - Swagger for API documentation
 
 ### Frontend
@@ -250,12 +249,12 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📞 Contact
 
-Project Link: [https://github.com/yourusername/thriftify](https://github.com/yourusername/thriftify)
+Project Link: [https://github.com/viraj-gavade/thriftify](https://github.com/viraj-gavade/Thriftify)
 
 ### Connect with Me
-- 📸 Instagram: [@yourinstagram](https://instagram.com/yourinstagram)
-- 🐦 Twitter: [@yourtwitter](https://twitter.com/yourtwitter)
-- 💼 LinkedIn: [Your Name](https://linkedin.com/in/yourlinkedin)
+- 📸 Instagram: [@_viraj.js]([https://instagram.com/yourinstagram](https://www.instagram.com/_viraj.js/))
+- 🐦 Twitter: [@viraj_gavade]([https://twitter.com/yourtwitter](https://x.com/viraj_gavade))
+- 💼 LinkedIn: [Viraj Gavade]([https://linkedin.com/in/yourlinkedin](https://www.linkedin.com/in/viraj-gavade-dev/))
 
 ## 📷 Screenshots
 
@@ -266,9 +265,6 @@ Here are some screenshots of the Thriftify application:
 
 ### Product Listing
 ![Product Listing](./screenshots/product-listing.png)
-
-### User Dashboard
-![User Dashboard](./screenshots/user-dashboard.png)
 
 ### Payment Gateway
 ![payment View](./screenshots/payment-view.png)
