@@ -33,6 +33,7 @@ const SearchRouter = require('./Routes/search.router'); // Add this line
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
 const SupportRouter = require('./Routes/support.router');
+const verifyJWT = require('./Middlewares/authentication.middleware');
 
 // Initialize app and server
 /**
@@ -294,7 +295,9 @@ app.get('/payment-success', (req, res) => {
   } else {
     res.locals.user = null;
   }
-  res.status(200).render('payment-success.ejs');
+  res.status(200).render('payment-success.ejs',{
+    user: req.user,
+  });
 }
 );
 

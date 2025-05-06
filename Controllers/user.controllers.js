@@ -155,9 +155,10 @@ const loginUser = asyncHandler(async (req, res) => {
     // Cookie options for secure and HTTP-only cookies
     const options = {
         httpOnly: true,
-        secure: true,
-        sameSite: 'Strict'
-    };
+        secure: true,          // Ensure cookies are only sent over HTTPS
+        sameSite: 'Lax'        // Allows cookies with top-level navigations and GET requests (safe for most use cases, including redirects)
+      };
+      
 
     // Send the generated tokens in cookies and redirect to home page
     return res.status(200)
