@@ -692,11 +692,17 @@
         <label for="category">Category</label>
         <select id="category" name="category">
           <option value="">All Categories</option>
-          <option value="electronics">Electronics</option>
-          <option value="furniture">Furniture</option>
-          <option value="clothing">Clothing</option>
-          <option value="books">Books</option>
-          <option value="others">Others</option>
+          <% if (locals.categories && categories.length > 0) { %>
+            <% categories.forEach(cat => { %>
+              <option value="<%= cat %>" <%= filters?.category === cat ? 'selected' : '' %>><%= cat.charAt(0).toUpperCase() + cat.slice(1) %></option>
+            <% }) %>
+          <% } else { %>
+            <option value="electronics">Electronics</option>
+            <option value="furniture">Furniture</option>
+            <option value="clothing">Clothing</option>
+            <option value="books">Books</option>
+            <option value="others">Others</option>
+          <% } %>
         </select>
       </div>
       <div class="filter-item">
@@ -719,7 +725,37 @@
     </div>
 
     <div id="listings">
-      <!-- Listings will load here -->
+      <!-- Add debug output -->
+      <% if (locals.listings && listings.length > 0) { %>
+        <!-- Server-side rendering of listings -->
+        <% listings.forEach(function(listing) { %>
+          <div class="listing">
+            <div class="listing-image">
+              <img src="<%= listing.images && listing.images.length ? listing.images[0] : 'https://via.placeholder.com/400x300?text=No+Image' %>" alt="<%= listing.title || 'Product' %>">
+            </div>
+            <div class="listing-details">
+              <h2><%= listing.title || 'No Title' %></h2>
+              <p class="listing-description"><%= listing.description || 'No Description' %></p>
+              <div class="price">₹<%= listing.price || 'N/A' %></div>
+              <div class="listing-meta">
+                <span><i class="fas fa-tag"></i> <%= listing.category || 'N/A' %></span>
+                <span><i class="fas fa-map-marker-alt"></i> <%= listing.location || 'N/A' %></span>
+              </div>
+              <div class="posted-by">
+                <i class="fas fa-user-circle"></i> <%= listing.postedBy?.fullname || 'Unknown' %>
+              </div>
+              <div class="listing-actions">
+                <a href="/api/v1/listings/<%= listing._id %>" class="buyNowBtn"><i class="fas fa-shopping-cart"></i> Buy Now</a>
+                <button class="bookmarkBtn" id="bookmarkBtn-<%= listing._id %>" data-id="<%= listing._id %>">
+                  <i class="far fa-bookmark"></i> Bookmark
+                </button>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      <% } else { %>
+        <p id="noData">No listings found. Try different filters or add your own item.</p>
+      <% } %>
     </div>
 
     <!-- No Results Message (hidden by default) -->
@@ -845,15 +881,21 @@
     // Fetch and display listings
     async function fetchListings() {
       const category = document.getElementById('category').value;
+      console.log('Selected category:', category); // Debug log to see selected value
       const location = document.getElementById('location').value;
       const sortOrder = document.getElementById('sortOrder').value;
       const searchQuery = document.getElementById('searchInput').value.trim();
       currentSearchQuery = searchQuery;
 
       let query = `?sortOrder=${sortOrder}`;
-      if (category) query += `&category=${encodeURIComponent(category)}`;
+      if (category) {
+        // Ensure category is properly formatted for the API
+        query += `&category=${encodeURIComponent(category.toLowerCase())}`;
+      }
       if (location) query += `&location=${encodeURIComponent(location)}`;
       if (searchQuery) query += `&query=${encodeURIComponent(searchQuery)}`;
+
+      console.log('API query string:', query); // Debug the final query string
 
       try {
         // First try to get the user's bookmarks, but don't block if it fails
@@ -886,7 +928,7 @@
         document.getElementById('noResults').style.display = 'none';
       }
     }
-        
+    
     // Function to display listings
     function displayListings(listings, userBookmarks = []) {
       const listingsDiv = document.getElementById('listings');
@@ -913,7 +955,7 @@
         // Check if this listing is bookmarked by the user - improve matching logic
         const isBookmarked = userBookmarks.some(bookmark => 
           bookmark.listingId === listing._id || 
-          bookmark._id === listing._id ||
+          bookmark._id === listing._id || 
           (bookmark.listing && bookmark.listing._id === listing._id)
         );
         const bookmarkIcon = isBookmarked ? 'fas fa-bookmark' : 'far fa-bookmark';
@@ -935,7 +977,7 @@
               <span><i class="fas fa-map-marker-alt"></i> ${listing.location || 'N/A'}</span>
             </div>
             <div class="posted-by">
-              <i class="fas fa-user-circle"></i> ${listing.postedBy?.fullname || 'Unknown'} 
+              <i class="fas fa-user-circle"></i> ${listing.postedBy?.fullname || 'Unknown'}
             </div>
             <div class="listing-actions">
               <button class="buyNowBtn" data-id="${listing._id}"><i class="fas fa-shopping-cart"></i> Buy Now</button>
@@ -1084,7 +1126,7 @@
         notification.textContent = isBookmarked ? 'Added to bookmarks!' : 'Removed from bookmarks!';
         document.body.appendChild(notification);
         
-        // Remove notification after 2 seconds
+        // Remove notification after 2 seconds        
         setTimeout(() => {
             notification.classList.add('fade-out');
             setTimeout(() => notification.remove(), 500);
@@ -1098,7 +1140,6 @@
         fetchListings();
       }
     });
-
     // Search form submission
     document.getElementById('searchForm').addEventListener('submit', function(e) {
       // Let the form submit naturally to the server-side search route
@@ -1108,7 +1149,6 @@
     // Clear search button functionality
     document.getElementById('clearSearch').addEventListener('click', function() {
       document.getElementById('searchInput').value = '';
-      
       // If on search page, go back to home instead of doing client-side search
       if (window.location.pathname === '/search' || window.location.pathname.includes('/search')) {
         window.location.href = '/';
@@ -1165,6 +1205,12 @@
       </style>
     `);
 
+    // Add filter button click handler
+    document.getElementById('filterBtn').addEventListener('click', function() {
+      console.log('Filter button clicked');
+      fetchListings();
+    });
+
     // Load listings initially
     window.onload = fetchListings;
   </script>
@@ -1201,7 +1247,7 @@
         
         .modal-content {
           width: 95% !important; 
-          max-width: 95% !important;
+          max-width: 95% !important; 
         }
         
         .listing-details h2 {
@@ -1219,10 +1265,10 @@
         }
         .container { 
           padding: 10px !important; 
-        }
+        } 
         h1 {
-          font-size: 1.5rem !important;
-          margin: 15px 0 !important;
+          font-size: 1.5rem !important; 
+          margin: 15px 0 !important; 
         }
         .filters {
           padding: 15px !important;

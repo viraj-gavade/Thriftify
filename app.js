@@ -47,8 +47,6 @@ const app = express();
  */
 const server = http.createServer(app); // Create HTTP server for Express
 
-// Remove Socket.IO setup as it's not being used
-
 // Setup Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -83,7 +81,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-
 
 // Routes
 app.get('/', asyncHandler(async(req, res) => {
@@ -131,7 +128,9 @@ app.get('/', asyncHandler(async(req, res) => {
     }
 
     // Build search query object
-    const searchQuery = {};
+    const searchQuery = {
+      isSold: false // Only show items that aren't sold yet
+    };
     
     // Add text search if query parameter exists
     if (query) {
@@ -142,13 +141,15 @@ app.get('/', asyncHandler(async(req, res) => {
     }
     
     // Add category filter if provided
-    if (category) {
-      searchQuery.category = category;
+    if (category && category !== 'all') {
+
+      // Use direct equality with lowercase for consistency with schema
+      searchQuery.category = category.toLowerCase();
     }
     
     // Add location filter if provided
     if (location) {
-      searchQuery.location = location;
+      searchQuery.location = { $regex: location, $options: 'i' };
     }
     
     // Add price range filters if provided
@@ -158,40 +159,47 @@ app.get('/', asyncHandler(async(req, res) => {
       if (maxPrice !== null) searchQuery.price.$lte = maxPrice;
     }
 
+
     // Get categories and locations for filter dropdowns
     const categories = await Listing.distinct('category');
+
     const locations = await Listing.distinct('location');
     
-    // Fetch listings with search, filters and sorting applied
-    const listings = await Listing.find(searchQuery)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limit)
-      .populate('postedBy', 'fullname email');
-      
-    // Count total matching results for pagination
-    const total = await Listing.countDocuments(searchQuery);
+    try {
+      // Fetch listings with search, filters and sorting applied
+      const listings = await Listing.find(searchQuery)
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(limit)
+        .populate('postedBy', 'fullname email');
+          
+      // Count total matching results for pagination
+      const total = await Listing.countDocuments(searchQuery);
 
-    // Render home page with listings and filters
-    return res.status(200).render('home', { 
-      listings: listings || [],
-      categories,
-      locations,
-      filters: { 
-        query, 
-        category, 
-        location, 
-        minPrice, 
-        maxPrice, 
-        sortBy 
-      },
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    });
+      // Render home page with listings and filters
+      return res.status(200).render('home', { 
+        listings: listings || [],
+        categories,
+        locations,
+        filters: { 
+          query, 
+          category, 
+          location, 
+          minPrice, 
+          maxPrice, 
+          sortBy 
+        },
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      });
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      throw dbError; // Re-throw to be caught by outer try-catch
+    }
   } catch (error) {
     console.error('Error fetching listings:', error);
     return res.status(500).render('home', {
@@ -245,7 +253,6 @@ app.get('/api/v1/chat', (req, res) => {
   res.status(200).render('chat.ejs');
 });
 
-
 app.get('/payment-cancel', (req, res) => {
   // Get authentication token and set user in locals for template
   const token = req.cookies.accessToken;
@@ -268,7 +275,6 @@ app.get('/success', (req, res) => {
 
   try {
     if (token) {
-     
       // Redirect to capture payment route
       return res.redirect(`/api/v1/orders/payment/capture?token=${token}`);
     } else {
@@ -295,11 +301,10 @@ app.get('/payment-success', (req, res) => {
   } else {
     res.locals.user = null;
   }
-  res.status(200).render('payment-success.ejs',{
+  res.status(200).render('payment-success.ejs', {
     user: req.user,
   });
-}
-);
+});
 
 app.get('/cancel', (req, res) => {
   // Get authentication token and set user in locals for template
@@ -316,15 +321,6 @@ app.get('/cancel', (req, res) => {
     res.locals.user = null;
   }
   res.status(200).render('payment-cancel.ejs');
-}
-);
-
-
-// Add these routes to handle PayPal redirection:
-
-// PayPal success and cancel routes
-app.get('/payment-cancel', (req, res) => {
-  res.render('payment-cancel');
 });
 
 /**
