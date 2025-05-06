@@ -73,6 +73,7 @@
       display: flex;
       gap: 20px;
       flex-wrap: wrap;
+      transition: all 0.3s ease;
     }
     
     .nav-links a {
@@ -87,22 +88,81 @@
       align-items: center;
     }
     
+    /* Burger Menu Styles */
+    .burger-menu {
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 30px;
+      height: 22px;
+      cursor: pointer;
+      z-index: 101;
+    }
+    
+    .burger-menu span {
+      display: block;
+      height: 3px;
+      width: 100%;
+      background-color: white;
+      border-radius: 3px;
+      transition: all 0.3s ease;
+    }
+    
+    /* Mobile Menu Animation Classes */
+    .burger-menu.active span:nth-child(1) {
+      transform: translateY(9px) rotate(45deg);
+    }
+    
+    .burger-menu.active span:nth-child(2) {
+      opacity: 0;
+    }
+    
+    .burger-menu.active span:nth-child(3) {
+      transform: translateY(-9px) rotate(-45deg);
+    }
+    
     @media (max-width: 768px) {
+      .burger-menu {
+        display: flex;
+      }
+      
       .navbar-container {
-        flex-direction: column;
-        padding: 10px;
-        gap: 10px;
+        flex-direction: row;
+        padding: 10px 20px;
+        position: relative;
       }
       
       .nav-links {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        background: #2c3e50;
         width: 100%;
-        justify-content: center;
-        gap: 10px;
+        box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+        padding: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+        z-index: 100;
+      }
+      
+      .nav-links.show {
+        max-height: 400px;
+        padding: 10px 0;
       }
       
       .nav-links a {
-        padding: 8px 10px;
-        font-size: 0.9rem;
+        width: 100%;
+        padding: 12px 20px;
+        border-radius: 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+      }
+      
+      .nav-links a:hover {
+        background: rgba(255,255,255,0.1);
+        transform: none;
       }
     }
     
@@ -124,12 +184,12 @@
     @media (max-width: 400px) {
       .nav-links {
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
       }
       
       .nav-links a {
         width: 100%;
-        justify-content: center;
+        justify-content: flex-start;
       }
     }
     
@@ -604,7 +664,15 @@
       <a href="/" class="logo">
         <i class="fas fa-recycle"></i> Thriftify
       </a>
-      <div class="nav-links">
+      
+      <!-- Burger Menu for Mobile -->
+      <div class="burger-menu" aria-label="Toggle menu" role="button" tabindex="0" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      
+      <div class="nav-links" id="navLinks">
         <a href="/"><i class="fas fa-home"></i> Home</a>
         <a href="/api/v1/category"><i class="fas fa-list"></i> Categories</a>
         
@@ -620,5 +688,45 @@
       </div>
     </div>
   </nav>
+
+  <!-- Add JavaScript for Burger Menu -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const burgerMenu = document.querySelector('.burger-menu');
+      const navLinks = document.querySelector('.nav-links');
+      
+      // Toggle menu on burger click
+      burgerMenu.addEventListener('click', function() {
+        navLinks.classList.toggle('show');
+        burgerMenu.classList.toggle('active');
+        
+        // Update ARIA attributes for accessibility
+        const isExpanded = navLinks.classList.contains('show');
+        burgerMenu.setAttribute('aria-expanded', isExpanded);
+      });
+      
+      // Close menu when clicking outside
+      document.addEventListener('click', function(event) {
+        const isClickInside = navLinks.contains(event.target) || burgerMenu.contains(event.target);
+        if (!isClickInside && navLinks.classList.contains('show')) {
+          navLinks.classList.remove('show');
+          burgerMenu.classList.remove('active');
+          burgerMenu.setAttribute('aria-expanded', 'false');
+        }
+      });
+      
+      // Allow keyboard navigation (Enter/Space to toggle menu)
+      burgerMenu.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          navLinks.classList.toggle('show');
+          burgerMenu.classList.toggle('active');
+          
+          const isExpanded = navLinks.classList.contains('show');
+          burgerMenu.setAttribute('aria-expanded', isExpanded);
+        }
+      });
+    });
+  </script>
 </body>
 </html>
