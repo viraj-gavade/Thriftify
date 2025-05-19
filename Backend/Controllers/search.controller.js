@@ -5,6 +5,8 @@
 
 const Listing = require('../Schemas/listings.schemas');
 const asyncHandler = require('../utils/asynchandler');
+const CustomApiError = require('../utils/apiErrors');
+const ApiResponse = require('../utils/apiResponse');
 
 /**
  * Search listings by query string and optional filters
@@ -87,37 +89,36 @@ const searchListings = asyncHandler(async (req, res) => {
             }
         }
         
-        // Render the search results page
-        res.render('search', {
-            title: query ? `Search results for "${query}" | Thriftify` : 'Search Results | Thriftify',
-            listings: listings,
-            categories: categories,
-            locations: locations,
-            userBookmarks: userBookmarks,
-            filters: {
-                query: query,
-                category: category,
-                location: location,
-                sortBy: sortBy
-            },
-            pagination: {
-                page: page,
-                limit: limit,
-                total: total,
-                pages: Math.ceil(total / limit)
-            },
-            query: query,
-            user: req.user
-        });
+        // Return API response with search results data
+        return res.status(200).json(
+            new ApiResponse(
+                'Search results fetched successfully',
+                {
+                    title: query ? `Search results for "${query}" | Thriftify` : 'Search Results | Thriftify',
+                    listings: listings,
+                    categories: categories,
+                    locations: locations,
+                    userBookmarks: userBookmarks,
+                    filters: {
+                        query: query,
+                        category: category,
+                        location: location,
+                        sortBy: sortBy
+                    },
+                    pagination: {
+                        page: page,
+                        limit: limit,
+                        total: total,
+                        pages: Math.ceil(total / limit)
+                    },
+                    query: query,
+                    user: req.user
+                }
+            )
+        );
     } catch (error) {
         console.error('Search error:', error);
-        res.status(500).render('search', {
-            title: 'Search Error | Thriftify',
-            listings: [],
-            error: 'An error occurred while searching',
-            query: req.query.q || '',
-            user: req.user
-        });
+        throw new CustomApiError(500, 'An error occurred while searching');
     }
 });
 

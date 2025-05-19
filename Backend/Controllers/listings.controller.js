@@ -4,15 +4,17 @@ const uploadFile = require('../utils/cloudinary');
 const Listing = require('../Schemas/listings.schemas');
 const User = require('../Schemas/user.schemas');
 const asyncHandler = require('../utils/asynchandler');
+const CustomApiError = require('../utils/apiErrors');
+const ApiResponse = require('../utils/apiResponse');
 
-const CreateListing = asyncHandler( async (req, res) => {
+const CreateListing = asyncHandler(async (req, res) => {
     try {
-        const { title, description, price, category,location } = req.body;
+        const { title, description, price, category, location } = req.body;
         const userId = req.user._id;
 
         const existingListing = await Listing.findOne({ title, user: userId });
         if (existingListing) {
-            return res.status(400).json({ message: 'Listing already exists' });
+            throw new CustomApiError(400, 'Listing already exists');
         }
 
         // Upload each file to Cloudinary and get secure URLs
@@ -40,10 +42,10 @@ const CreateListing = asyncHandler( async (req, res) => {
 
         await User.findByIdAndUpdate(userId, { $push: { listings: newListing._id } });
 
-        return res.status(201).json(newListing);
+        return res.status(201).json(new ApiResponse('Listing created successfully', newListing));
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: 'Server error' });
+        throw new CustomApiError(500, 'Server error while creating listing');
     }
 });
 
@@ -61,21 +63,19 @@ const GetAllListings = asyncHandler(async (req, res) => {
     
         // Find and sort
         const listings = await Listing.find(query)
-          .populate('postedBy', 'fullname email')
-          .sort({ [sortBy]: sortOrder });
+            .populate('postedBy', 'fullname email')
+            .sort({ [sortBy]: sortOrder });
     
         if (!listings.length) {
-          return res.status(404).json({ message: 'No listings found' });
+            throw new CustomApiError(404, 'No listings found');
         }
     
-        res.status(200).json(listings);
-      } catch (error) {
+        return res.status(200).json(new ApiResponse('Listings fetched successfully', listings));
+    } catch (error) {
         console.error('Error fetching listings:', error);
-        res.status(500).json({ message: 'Server error' });
-      }
+        throw new CustomApiError(500, 'Server error while fetching listings');
+    }
 });
-
-
 
 const GetSingleListing = asyncHandler(async (req, res) => {          
     try {
@@ -83,7 +83,7 @@ const GetSingleListing = asyncHandler(async (req, res) => {
         const listing = await Listing.findById(id).populate('postedBy', 'fullname email');
         
         if (!listing) {
-            return res.status(404).json({ message: 'Listing not found' });
+            throw new CustomApiError(404, 'Listing not found');
         }
         
         // Check if the listing is bookmarked by the current user
@@ -95,28 +95,29 @@ const GetSingleListing = asyncHandler(async (req, res) => {
             }
         }
         
-        return res.status(200).render('listing', { 
-            listing: listing,
-            isBookmarked: isBookmarked ,
-            user: req.user // Pass the user object to the template
-
-        });
+        return res.status(200).json(
+            new ApiResponse('Listing fetched successfully', {
+                listing: listing,
+                isBookmarked: isBookmarked,
+                user: req.user
+            })
+        );
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Server error' });
+        throw new CustomApiError(500, 'Server error while fetching listing');
     }
 });
 
-const UpdateListing = asyncHandler( async (req, res) => {
+const UpdateListing = asyncHandler(async (req, res) => {
     try {
         // Check if the user is the owner of the listing
         const listing = await Listing.findById(req.params.id);
         if (!listing) {
-            return res.status(404).json({ message: 'Listing not found' });
+            throw new CustomApiError(404, 'Listing not found');
         }
         
         if (listing.postedBy.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: 'You are not authorized to update this listing' });
+            throw new CustomApiError(403, 'You are not authorized to update this listing');
         }
 
         const { id } = req.params;
@@ -154,47 +155,32 @@ const UpdateListing = asyncHandler( async (req, res) => {
         );
 
         if (!updatedListing) {
-            return res.status(404).json({ message: 'Listing not found' });
+            throw new CustomApiError(404, 'Listing not found');
         }
 
-        return res.status(200).json(updatedListing);
+        return res.status(200).json(new ApiResponse('Listing updated successfully', updatedListing));
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Server error' });
+        throw new CustomApiError(500, 'Server error while updating listing');
     }
 });
 
-/**
- * Deletes a listing from the database
- * 
- * This function handles the deletion of a listing with several checks:
- * 1. Verifies the listing exists
- * 2. Ensures the current user is the owner of the listing
- * 3. Prevents deletion of listings that have been marked as sold
- * 
- * After successful deletion, it also updates the user document to remove
- * the listing reference from their listings array.
- * 
- * @param {Object} req - Express request object containing listing ID in params and user in auth token
- * @param {Object} res - Express response object
- * @returns {Object} JSON response with success message or error details
- */
 const DeleteListing = asyncHandler(async (req, res) => {   
     try {
         // Check if the listing exists
         const listing = await Listing.findById(req.params.id);
         if (!listing) {
-            return res.status(404).json({ message: 'Listing not found' });
+            throw new CustomApiError(404, 'Listing not found');
         }
         
         // Check if the user is the owner of the listing
         if (listing.postedBy.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: 'You are not authorized to delete this listing' });
+            throw new CustomApiError(403, 'You are not authorized to delete this listing');
         }
         
         // Check if the listing is already sold
         if (listing.isSold) {
-            return res.status(400).json({ message: 'Cannot delete a sold listing' });
+            throw new CustomApiError(400, 'Cannot delete a sold listing');
         }
 
         // Delete the listing
@@ -203,38 +189,44 @@ const DeleteListing = asyncHandler(async (req, res) => {
         // Remove the listing from the user's listings array
         await User.findByIdAndUpdate(req.user._id, { $pull: { listings: req.params.id } });
 
-        return res.status(200).json({ message: 'Listing deleted successfully' });
+        return res.status(200).json(new ApiResponse('Listing deleted successfully', null));
     } catch (error) {
-        return res.status(500).json({ message: 'Server error' });
+        throw new CustomApiError(500, 'Server error while deleting listing');
     }
 });
 
-const GetUserListings = asyncHandler( async (req, res) => {
+const GetUserListings = asyncHandler(async (req, res) => {
     try {
         const userId = req.user._id;
         const listings = await Listing.find({ postedBy: userId }).populate('postedBy', 'name email').sort({ createdAt: -1 });
-        return res.render('userlistings', { listings: listings });
+        
+        return res.status(200).json(new ApiResponse('User listings fetched successfully', {
+            listings: listings
+        }));
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Server error' });
+        throw new CustomApiError(500, 'Server error while fetching user listings');
     }
-})
-const GetUserListingById = asyncHandler( async (req, res) => {
+});
+
+const GetUserListingById = asyncHandler(async (req, res) => {
     try {
         const userId = req.user._id;
         const { id } = req.params;
         const listing = await Listing.findOne({ _id: id, postedBy: userId }).populate('postedBy', 'name email');
+        
         if (!listing) {
-            return res.status(404).json({ message: 'Listing not found' });
+            throw new CustomApiError(404, 'Listing not found');
         }
-        return res.status(200).json(listing);
+        
+        return res.status(200).json(new ApiResponse('User listing fetched successfully', listing));
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Server error' });
+        throw new CustomApiError(500, 'Server error while fetching user listing');
     }
-})
+});
 
-const AddToBookmarks = asyncHandler( async (req, res) => {
+const AddToBookmarks = asyncHandler(async (req, res) => {
     try {
         const userId = req.user._id;
         const { listingId } = req.body;
@@ -242,19 +234,20 @@ const AddToBookmarks = asyncHandler( async (req, res) => {
         // Check if the listing exists
         const listing = await Listing.findById(listingId);
         if (!listing) {
-            return res.status(404).json({ message: 'Listing not found' });
+            throw new CustomApiError(404, 'Listing not found');
         }
 
         // Add the listing to the user's bookmarks
         await User.findByIdAndUpdate(userId, { $addToSet: { Bookmarks: listingId } });
 
-        return res.status(200).json({ message: 'Listing added to bookmarks' });
+        return res.status(200).json(new ApiResponse('Listing added to bookmarks', null));
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Server error' });
+        throw new CustomApiError(500, 'Server error while adding to bookmarks');
     }
-})
-const RemoveFromBookmarks = asyncHandler( async (req, res) => {
+});
+
+const RemoveFromBookmarks = asyncHandler(async (req, res) => {
     try {
         const userId = req.user._id;
         const { listingId } = req.body;
@@ -262,33 +255,34 @@ const RemoveFromBookmarks = asyncHandler( async (req, res) => {
         // Check if the listing exists
         const listing = await Listing.findById(listingId);
         if (!listing) {
-            return res.status(404).json({ message: 'Listing not found' });
+            throw new CustomApiError(404, 'Listing not found');
         }
 
         // Remove the listing from the user's bookmarks
         await User.findByIdAndUpdate(userId, { $pull: { Bookmarks: listingId } });
 
-        return res.status(200).json({ message: 'Listing removed from bookmarks' });
+        return res.status(200).json(new ApiResponse('Listing removed from bookmarks', null));
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Server error' });
+        throw new CustomApiError(500, 'Server error while removing from bookmarks');
     }
-})  
+});  
 
-const GetUserBookmarks = asyncHandler( async (req, res) => {
+const GetUserBookmarks = asyncHandler(async (req, res) => {
     try {
         const userId = req.user._id;
         const user = await User.findById(userId).populate('Bookmarks');
+        
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }           
-        return res.status(200).json(user.Bookmarks);
+            throw new CustomApiError(404, 'User not found');
+        }
+        
+        return res.status(200).json(new ApiResponse('User bookmarks fetched successfully', user.Bookmarks));
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Server error' });
+        throw new CustomApiError(500, 'Server error while fetching user bookmarks');
     }
-}
-)
+});
 
 const ToggleBookmark = asyncHandler(async (req, res) => {
     try {
@@ -298,13 +292,13 @@ const ToggleBookmark = asyncHandler(async (req, res) => {
         // Check if the listing exists
         const listing = await Listing.findById(listingId);
         if (!listing) {
-            return res.status(404).json({ success: false, message: 'Listing not found' });
+            throw new CustomApiError(404, 'Listing not found');
         }
 
         // Find the user
         const user = await User.findById(userId);
         if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
+            throw new CustomApiError(404, 'User not found');
         }
 
         // Check if the listing is already bookmarked
@@ -313,27 +307,23 @@ const ToggleBookmark = asyncHandler(async (req, res) => {
         if (isBookmarked) {
             // Remove from bookmarks
             await User.findByIdAndUpdate(userId, { $pull: { Bookmarks: listing._id } });
-            return res.status(200).json({ 
-                success: true, 
-                message: 'Listing removed from bookmarks',
-                isBookmarked: false
-            });
         } else {
             // Add to bookmarks
             await User.findByIdAndUpdate(userId, { $addToSet: { Bookmarks: listing._id } });
-            return res.status(200).json({ 
-                success: true, 
-                message: 'Listing added to bookmarks',
-                isBookmarked: true
-            });
         }
+
+        return res.status(200).json(new ApiResponse(
+            isBookmarked ? 'Listing removed from bookmarks' : 'Listing added to bookmarks',
+            { isBookmarked: !isBookmarked }
+        ));
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ success: false, message: 'Server error' });
+        throw new CustomApiError(500, 'Server error while toggling bookmark');
     }
 });
 
-module.exports = { CreateListing,
+module.exports = { 
+    CreateListing,
     GetAllListings, 
     GetSingleListing, 
     UpdateListing, 
@@ -344,4 +334,4 @@ module.exports = { CreateListing,
     RemoveFromBookmarks,
     GetUserBookmarks,
     ToggleBookmark
- };
+};
