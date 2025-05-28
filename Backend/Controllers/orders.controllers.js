@@ -15,44 +15,50 @@ let paypalTokenExpiry = null;
 
 // Util: Get PayPal Access Token with caching
 const getPaypalAccessToken = async () => {
-  const now = new Date().getTime();
-  if (paypalAccessToken && paypalTokenExpiry && now < paypalTokenExpiry) {
-    return paypalAccessToken; // still valid
-  }
-
-  const basicAuth = Buffer.from(
-    `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
-  ).toString("base64");
-
-  const tokenRes = await axios.post(
-    "https://api-m.sandbox.paypal.com/v1/oauth2/token",
-    new URLSearchParams({ grant_type: "client_credentials" }),
-    {
-      headers: {
-        Authorization: `Basic ${basicAuth}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
+  try {
+    const now = new Date().getTime();
+    if (paypalAccessToken && paypalTokenExpiry && now < paypalTokenExpiry) {
+      return paypalAccessToken; // still valid
     }
-  );
 
-  paypalAccessToken = tokenRes.data.access_token;
-  paypalTokenExpiry = now + tokenRes.data.expires_in * 1000 - 60 * 1000; // refresh 1 min early
-  return paypalAccessToken;
+    const basicAuth = Buffer.from(
+      `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+    ).toString("base64");
+
+    const tokenRes = await axios.post(
+      "https://api-m.sandbox.paypal.com/v1/oauth2/token",
+      new URLSearchParams({ grant_type: "client_credentials" }),
+      {
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    paypalAccessToken = tokenRes.data.access_token;
+    paypalTokenExpiry = now + tokenRes.data.expires_in * 1000 - 60 * 1000; // refresh 1 min early
+    return paypalAccessToken;
+  } catch (error) {
+    console.error("Failed to get PayPal access token:", error);
+    throw new CustomApiError(500, "Failed to get payment authorization token");
+  }
 };
+
 const CreateOrder = asyncHandler(async (req, res) => {
   try {
     const userId = req.user?._id;
-    if (!userId) throw new CustomApiError("User not authenticated", 401);
+    if (!userId) throw new CustomApiError(401, "User not authenticated");
 
     const { listingId, name, address, phone, city, pincode } = req.body;
 
     if (!listingId || !name || !address || !phone || !city || !pincode) {
-      throw new CustomApiError("All shipping fields are required", 400);
+      throw new CustomApiError(400, "All shipping fields are required");
     }
 
     const listing = await Listing.findById(listingId);
-    if (!listing) throw new CustomApiError("Listing not found", 404);
-    if (listing.isSold) throw new CustomApiError("Listing already sold", 409);
+    if (!listing) throw new CustomApiError(404, "Listing not found");
+    if (listing.isSold) throw new CustomApiError(409, "Listing already sold");
 
     // Get the base URL with proper format (ensure it has http/https prefix)
     const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
@@ -114,7 +120,7 @@ const CreateOrder = asyncHandler(async (req, res) => {
       orderStatus: "pending",
     });
 
-    if (!order) throw new CustomApiError("Order creation failed", 500);
+    if (!order) throw new CustomApiError(500, "Order creation failed");
 
     await User.findByIdAndUpdate(
       userId,
@@ -137,21 +143,22 @@ const CreateOrder = asyncHandler(async (req, res) => {
     );
   } catch (error) {
     console.error("Order creation error:", error);
-    return res
-      .status(error.statusCode || 500)
-      .json(new ApiResponse(error.message || "Internal Server Error"));
+    if (error instanceof CustomApiError) {
+      throw error;
+    }
+    throw new CustomApiError(error.statusCode || 500, error.message || "Internal Server Error");
   }
 });
 
 // Capture the PayPal payment after approval
 const capturePayment = asyncHandler(async (req, res) => {
-    const { token } = req.query; // we get ?token=... from PayPal redirect
-    if (!token) throw new CustomApiError("Missing PayPal token in query", 400);
-  
     try {
+      const { token } = req.query; // we get ?token=... from PayPal redirect
+      if (!token) throw new CustomApiError(400, "Missing PayPal token in query");
+    
       // Reuse the existing token function instead of duplicating code
       const accessToken = await getPaypalAccessToken();
-  
+    
       // Step 2: Capture the payment using the token
       const captureRes = await axios.post(
         `https://api-m.sandbox.paypal.com/v2/checkout/orders/${token}/capture`,
@@ -163,12 +170,12 @@ const capturePayment = asyncHandler(async (req, res) => {
           },
         }
       );
-  
+    
       const captureData = captureRes.data;  
       if (captureRes.status !== 201 || captureData.status !== "COMPLETED") {
-        throw new CustomApiError("Payment not completed", 500);
+        throw new CustomApiError(500, "Payment not completed");
       }
-  
+    
       // Step 3: Find and update your order in DB
       const updatedOrder = await Order.findOneAndUpdate(
         { paypalOrderId: token },
@@ -186,9 +193,9 @@ const capturePayment = asyncHandler(async (req, res) => {
         },
         { new: true }
       ).populate('listing');
-  
+    
       if (!updatedOrder) {
-        throw new CustomApiError("Order not found for the given PayPal token", 404);
+        throw new CustomApiError(404, "Order not found for the given PayPal token");
       }
 
       // Also mark the listing as sold when payment is complete
@@ -197,12 +204,23 @@ const capturePayment = asyncHandler(async (req, res) => {
         { isSold: true }, 
         { new: true }
       );      
-      // Redirect to payment success page instead of returning JSON
-      return res.redirect('/payment-success');
+      
+      // Return success response with payment details instead of redirecting
+      return res.status(200).json(
+        new ApiResponse("Payment captured successfully", {
+          order: updatedOrder,
+          redirectUrl: '/payment-success' // Include redirect URL for client to use
+        })
+      );
     } catch (err) {
       console.error("❌ Capture failed:", err.response?.data || err.message);
-      // Redirect to payment cancel page if there's an error
-      return res.redirect('/payment-cancel');
+      // Return error response with redirect info instead of redirecting directly
+      return res.status(err.statusCode || 500).json(
+        new ApiResponse("Payment capture failed", {
+          error: err.message || "Payment processing error",
+          redirectUrl: '/payment-cancel' // Include redirect URL for client to use
+        }, false)
+      );
     }
 });
 
@@ -213,40 +231,63 @@ const capturePayment = asyncHandler(async (req, res) => {
  * @param {Object} res - Express response object
  * @returns {Object} JSON response with order details or error
  */
-const GetOrder = asyncHandler(async (req, res) => { 
+const GetOrder = asyncHandler(async (req, res) => {
+  try { 
     const orderId = req.params.id; // Extracting order ID from request parameters   
     const order = await Order.findById(orderId).populate('listing').populate('buyer').populate('seller'); // Fetching order details from database
+    
     if (!order) {
-        return res.status(404).json(new ApiResponse('Order not found')); // Sending error response if order not found
+      throw new CustomApiError(404, 'Order not found');
     }
-    return res.status(200).json(new ApiResponse('Order fetched successfully', order)); // Sending success response with order details
+    
+    return res.status(200).json(new ApiResponse('Order fetched successfully', order));
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    if (error instanceof CustomApiError) {
+      throw error;
+    }
+    throw new CustomApiError(500, "Error retrieving order details");
+  }
 });
 
 const GetUserOrders = asyncHandler(async (req, res) => {
+  try {
     const userId = req.user._id; // Extracting user ID from request object
-    const orders = await Order.find({ buyer: userId }).populate('listing'); // Fetching orders for the user
-    if (!orders.length) { // Check if array is empty instead of null
-        return res.status(404).json(new ApiResponse('No orders found')); // Sending error response if no orders found
+    if (!userId) {
+      throw new CustomApiError(401, 'User not authenticated');
     }
-    return res.status(200).json(new ApiResponse('Orders fetched successfully', orders)); // Sending success response with orders
+    
+    const orders = await Order.find({ buyer: userId }).populate('listing'); // Fetching orders for the user
+    
+    // Return the orders even if the array is empty (don't throw error for empty results)
+    return res.status(200).json(new ApiResponse('Orders fetched successfully', orders));
+  } catch (error) {
+    console.error("Error fetching user orders:", error);
+    if (error instanceof CustomApiError) {
+      throw error;
+    }
+    throw new CustomApiError(500, "Error retrieving orders");
+  }
 });
 
 const DeleteUserOrder = asyncHandler(async (req, res) => {
+  try {
     const userId = req.user._id; // Extracting user ID from request object
     if (!userId) {
-        return res.status(401).json(new ApiResponse('User not authenticated')); // Sending error response if user is not authenticated
+      throw new CustomApiError(401, 'User not authenticated');
     }
+    
     const {orderId} = req.params; // Extracting order ID from request parameters
     
     // First find the order to check permissions
     const orderToDelete = await Order.findById(orderId);
     if (!orderToDelete) {
-        return res.status(404).json(new ApiResponse('Order not found')); // Sending error response if order not found
+      throw new CustomApiError(404, 'Order not found');
     }
     
     // Only allow buyer to delete their own orders
     if (orderToDelete.buyer.toString() !== userId.toString()) {
-        return res.status(403).json(new ApiResponse('Not authorized to delete this order'));
+      throw new CustomApiError(403, 'Not authorized to delete this order');
     }
     
     // Delete the order
@@ -254,38 +295,43 @@ const DeleteUserOrder = asyncHandler(async (req, res) => {
     
     // Updating the listing to mark it as unsold
     await Listing.findByIdAndUpdate(order.listing, { isSold: false }, { new: true });
+    
     // Removing the order from the user's orders array
     await User.findByIdAndUpdate(order.buyer, { $pull: { orders: orderId } }, { new: true });
     await User.findByIdAndUpdate(order.seller, { $pull: { orders: orderId } }, { new: true });
+    
     return res.status(200).json(
-        new ApiResponse(200,'Order deleted successfully', order) // Sending success response with deleted order details
-    ) // Sending success response
+      new ApiResponse('Order deleted successfully', order)
+    );
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    if (error instanceof CustomApiError) {
+      throw error;
+    }
+    throw new CustomApiError(500, "Error deleting order");
+  }
 });
 
 const ViewOrderDetails = asyncHandler(async (req, res) => {
     try {
         const orderId = req.params.id;
+        if (!req.user) {
+          throw new CustomApiError(401, 'Unauthorized access');
+        }
+        
         const order = await Order.findById(orderId)
             .populate('listing')
             .populate('buyer', 'fullname email')
             .populate('seller', 'fullname email');
         
         if (!order) {
-            return res.status(404).render('error', { 
-                message: 'Order not found',
-                error: { status: 404 },
-                user: req.user
-            });
+            throw new CustomApiError(404, 'Order not found');
         }
 
         // Check if the requesting user is either the buyer or seller
         if (req.user._id.toString() !== order.buyer._id.toString() && 
             req.user._id.toString() !== order.seller._id.toString()) {
-            return res.status(403).render('error', {
-                message: 'You do not have permission to view this order',
-                error: { status: 403 },
-                user: req.user
-            });
+            throw new CustomApiError(403, 'You do not have permission to view this order');
         }
 
         // Format dates for display
@@ -297,18 +343,20 @@ const ViewOrderDetails = asyncHandler(async (req, res) => {
             paidAt: order.paidAt ? new Date(order.paidAt).toLocaleString() : null
         };
 
-        return res.render('order-details', {
+        // Return API response with order details instead of rendering
+        return res.status(200).json(
+          new ApiResponse('Order details fetched successfully', {
             title: `Order #${orderId.substring(0, 8)}... | Thriftify`,
             order: formattedOrder,
             user: req.user
-        });
+          })
+        );
     } catch (error) {
         console.error('Error fetching order details:', error);
-        return res.status(500).render('error', {
-            message: 'Error retrieving order details',
-            error: { status: 500 },
-            user: req.user
-        });
+        if (error instanceof CustomApiError) {
+          throw error;
+        }
+        throw new CustomApiError(500, 'Error retrieving order details');
     }
 });
 
