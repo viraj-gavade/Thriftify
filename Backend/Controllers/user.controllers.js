@@ -135,15 +135,21 @@ const loginUser = asyncHandler(async (req, res) => {
         email: email.toLowerCase()
     })
     
-    // Throw an error if user is not found
+    // Return JSON response if user is not found
     if (!user) {
-        throw new CustomApiError(404, 'User not found!')
+        return res.status(404).json({
+            status: 'fail',
+            message: 'User not found!'
+        });
     }
 
     // Check if the provided password matches the stored password
     const validPassword = await user.isPasswordCorrect(password)
     if (!validPassword) {
-        throw new CustomApiError(401, 'Invalid user credentials!')
+        return res.status(401).json({
+            status: 'fail',
+            message: 'Invalid user credentials!'
+        });
     }
 
     // Generate access and refresh tokens for the logged-in user

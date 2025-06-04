@@ -9,7 +9,7 @@ function App() {
       <Routes>
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<SigninPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPlaceholder />} />
+        
         {/* Add other routes here */}
         <Route path="/" element={<HomePage />} />
       </Routes>
