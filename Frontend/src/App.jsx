@@ -1,18 +1,104 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import SignupPage from './components/SignupPage';
 import SigninPage from './components/SigninPage';
-import { HomePage } from './components/HomePage';
+import HomePage from './components/HomePage';
+// import { HomePage } from './components/HomePage';  // Logout handler component
+const LogoutHandler = ({ setIsAuthenticated }) => {
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const performLogout = async () => {
+      try {
+        await axios.get('/api/v1/user/logout', { withCredentials: true });
+        setIsAuthenticated(false);
+        navigate('/login');
+      } catch (err) {
+        console.error('Error logging out:', err);
+        navigate('/login');
+      }
+    };
+    
+    performLogout();
+  }, [navigate, setIsAuthenticated]);
+  
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mx-auto mb-4"></div>
+        <p className="text-lg">Logging out...</p>
+      </div>
+    </div>
+  );
+};
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check authentication status when the app loads
+    const checkAuth = async () => {
+      try {
+        const response = await axios.get('/api/v1/user/check-auth', {
+          withCredentials: true
+        });
+        setIsAuthenticated(response.status === 200);
+      } catch (err) {
+        setIsAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // Protected route component
+  const ProtectedRoute = ({ children }) => {
+    if (loading) {
+      return <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      </div>;
+    }
+
+    if (!isAuthenticated) {
+      return <Navigate to="/login" />;
+    }
+
+    return children;
+  };
+
   return (
     <Router>
       <Routes>
+        {/* Public routes */}
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<SigninPage />} />
+        <Route path="/" element={<HomePage/>} />
+        <Route path="/logout" element={<LogoutHandler setIsAuthenticated={setIsAuthenticated} />} />
+       
+        {/* Protected routes */}
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <div>Profile Page (Coming Soon)</div>
+          </ProtectedRoute>
+        } />
+        <Route path="/bookmarks" element={
+          <ProtectedRoute>
+            <div>Bookmarks Page (Coming Soon)</div>
+          </ProtectedRoute>
+        } />
+        <Route path="/listings/new" element={
+          <ProtectedRoute>
+            <div>Create Listing Page (Coming Soon)</div>
+          </ProtectedRoute>
+        } />
         
-        {/* Add other routes here */}
-        <Route path="/" element={<HomePage />} />
+        {/* Catch all route */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );
