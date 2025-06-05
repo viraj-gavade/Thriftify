@@ -2,6 +2,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import SignupPage from './components/SignupPage';
 import SigninPage from './components/SigninPage';
+import { HomePage } from './components/HomePage';
 
 function App() {
   return (
@@ -17,8 +18,8 @@ function App() {
   );
 }
 
-// Placeholder HomePage component
-const HomePage = () => {
+// Landing page component for users who aren't logged in yet
+const LandingPage = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
       <div className="max-w-md w-full text-center">
