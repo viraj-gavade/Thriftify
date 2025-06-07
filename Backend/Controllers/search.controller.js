@@ -12,9 +12,10 @@ const ApiResponse = require('../utils/apiResponse');
  * Search listings by query string and optional filters
  */
 const searchListings = asyncHandler(async (req, res) => {
+    console.log('Search request received:', req.query);
     try {
         // Extract search parameters
-        const query = req.query.q || '';
+        const query = req.query.query || '';
         const category = req.query.category || '';
         const location = req.query.location || '';
         const sortBy = req.query.sortBy || 'newest';
@@ -68,6 +69,8 @@ const searchListings = asyncHandler(async (req, res) => {
         
         // Execute search query to get total for pagination
         const total = await Listing.countDocuments(searchQuery);
+
+        console.log('searchQuery:', searchQuery);
         
         // Execute search query to get listings
         const listings = await Listing.find(searchQuery)
@@ -89,6 +92,7 @@ const searchListings = asyncHandler(async (req, res) => {
             }
         }
         
+
         // Return API response with search results data
         return res.status(200).json(
             new ApiResponse(
