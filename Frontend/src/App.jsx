@@ -5,6 +5,9 @@ import axios from 'axios';
 import SignupPage from './components/SignupPage';
 import SigninPage from './components/SigninPage';
 import HomePage from './components/HomePage';
+import ListingDetailsPage from './components/ListingDetailsPage';
+// import { HomePage } from './components/HomePage';  // Logout handler component
+import { useState, useEffect  ,useNavigate} from 'react';
 // import { HomePage } from './components/HomePage';  // Logout handler component
 const LogoutHandler = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
@@ -45,7 +48,7 @@ function App() {
         const response = await axios.get('/api/v1/user/check-auth', {
           withCredentials: true
         });
-        setIsAuthenticated(response.status === 200);
+        setIsAuthenticated(response.status === 200);     
       } catch (err) {
         setIsAuthenticated(false);
       } finally {
@@ -79,7 +82,7 @@ function App() {
         <Route path="/login" element={<SigninPage />} />
         <Route path="/" element={<HomePage/>} />
         <Route path="/logout" element={<LogoutHandler setIsAuthenticated={setIsAuthenticated} />} />
-       
+        <Route path="/listings/:id" element={<div>Listing Details (Coming Soon)</div>} />       
         {/* Protected routes */}
         <Route path="/profile" element={
           <ProtectedRoute>
