@@ -47,9 +47,6 @@ userRouter.route('/').get((req, res) => {
  * POST - Processes user registration with file upload
  */
 userRouter.route('/signup')
-    .get((req, res) => {
-        res.render('signup');
-    })
     .post(
         upload.fields([
             { name: 'profilepic', maxCount: 1 },
@@ -63,9 +60,6 @@ userRouter.route('/signup')
  * POST - Processes user login
  */
 userRouter.route('/login')
-    .get((req, res) => {
-        res.render('login');
-    })
     .post(loginUser);
 
 /**
@@ -142,6 +136,8 @@ userRouter.route('/bookmarks').get(verifyJWT, asyncHandler(async (req, res) => {
         listingId: bookmark._id,
         title: bookmark.title,
     }));
+
+    console.log('Bookmarks:', bookmarks);   
     
     res.status(200).json(bookmarks);
 }));
