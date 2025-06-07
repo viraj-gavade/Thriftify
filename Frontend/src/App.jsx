@@ -1,11 +1,14 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import SignupPage from './components/SignupPage';
 import SigninPage from './components/SigninPage';
 import HomePage from './components/HomePage';
 import ListingDetailsPage from './components/ListingDetailsPage';
 // import { HomePage } from './components/HomePage';  // Logout handler component
 import { useState, useEffect  ,useNavigate} from 'react';
+// import { HomePage } from './components/HomePage';  // Logout handler component
 const LogoutHandler = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
   
@@ -45,9 +48,8 @@ function App() {
         const response = await axios.get('/api/v1/user/check-auth', {
           withCredentials: true
         });
-        setIsAuthenticated(response.status === 200);
-      } catch {
-        // If there's an error, user is not authenticated
+        setIsAuthenticated(response.status === 200);     
+      } catch (err) {
         setIsAuthenticated(false);
       } finally {
         setLoading(false);
@@ -75,12 +77,12 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Public routes */}
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<SigninPage />} />
         <Route path="/" element={<HomePage/>} />
         <Route path="/logout" element={<LogoutHandler setIsAuthenticated={setIsAuthenticated} />} />
-        <Route path="/listings/:id" element={<div>Listing Details (Coming Soon)</div>} />
-       
+        <Route path="/listings/:id" element={<div>Listing Details (Coming Soon)</div>} />       
         {/* Protected routes */}
         <Route path="/profile" element={
           <ProtectedRoute>
@@ -98,8 +100,8 @@ function App() {
           </ProtectedRoute>
         } />
         
-        {/* Add other routes here */}
-        <Route path="/" element={<HomePage />} />
+        {/* Catch all route */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );
