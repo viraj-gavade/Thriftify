@@ -6,9 +6,7 @@ import SignupPage from './components/SignupPage';
 import SigninPage from './components/SigninPage';
 import HomePage from './components/HomePage';
 import ListingDetailsPage from './components/ListingDetailsPage';
-// import { HomePage } from './components/HomePage';  // Logout handler component
-import { useState, useEffect  ,useNavigate} from 'react';
-// import { HomePage } from './components/HomePage';  // Logout handler component
+
 const LogoutHandler = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
   
