@@ -48,9 +48,13 @@ const HomePage = () => {
 
   // Fetch listings when component mounts or filters change
   useEffect(() => {
-    fetchListings();
+    // Remove the automatic fetch on filter change
+    // Only fetch on initial load
+    if (loading && listings.length === 0) {
+      fetchListings();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, []);
 
   // Fetch user's bookmarks if authenticated
   useEffect(() => {
@@ -124,15 +128,15 @@ const HomePage = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
+  // Apply filters - now this is the only way to trigger a search after changing filters
+  const applyFilters = () => {
+    fetchListings();
+  };
+  
   // Handle search
   const handleSearch = (e) => {
     e.preventDefault();
     fetchSearchedListings();
-  };
-  
-  // Apply filters
-  const applyFilters = () => {
-    fetchListings();
   };
   
   // Handle bookmark toggle
@@ -290,7 +294,7 @@ const HomePage = () => {
         <section className="bg-gradient-to-r from-[#2c3e50] to-[#3498db] text-white py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-extrabold sm:text-5xl">Find Amazing Deals</h1>
+              <h1 className="text-4xl font-extrabold sm:text-5xl text-white">Find Amazing Deals</h1>
               <p className="mt-4 text-xl">Discover pre-loved items at incredible prices</p>
             </div>
             
@@ -330,18 +334,16 @@ const HomePage = () => {
             
             {/* Filter options */}
             <div className="mt-6 flex flex-wrap justify-center gap-4">
-              <select
-                value={filters.location}
-                onChange={(e) => setFilters({...filters, location: e.target.value})}
-                className="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
-              >
-                <option value="">All Locations</option>
-                <option value="Mumbai">Mumbai</option>
-                <option value="Delhi">Delhi</option>
-                <option value="Bangalore">Bangalore</option>
-                <option value="Hyderabad">Hyderabad</option>
-                <option value="Chennai">Chennai</option>
-              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={filters.location}
+                  onChange={(e) => setFilters({...filters, location: e.target.value})}
+                  placeholder="Enter location..."
+                  className="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+                />
+                <FaMapMarkerAlt className="absolute right-3 top-2.5 text-gray-400" />
+              </div>
               
               <select
                 value={filters.sortBy}
@@ -369,9 +371,6 @@ const HomePage = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-bold text-gray-800">Featured Listings</h2>
-              <Link to="/listings/new" className="flex items-center gap-2 bg-[#3498db] hover:bg-[#2980b9] text-white px-4 py-2 rounded-md transition duration-300">
-                <FaPlus /> Add Listing
-              </Link>
             </div>
 
             {loading ? (

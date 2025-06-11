@@ -67,7 +67,7 @@ const GetAllListings = asyncHandler(async (req, res) => {
             .sort({ [sortBy]: sortOrder });
     
         if (!listings.length) {
-            throw new CustomApiError(404, 'No listings found');
+            return res.status(200).json(new ApiResponse('No listings found', []));
         }
     
         return res.status(200).json(new ApiResponse('Listings fetched successfully', listings));
