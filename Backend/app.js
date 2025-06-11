@@ -224,7 +224,7 @@ app.use('/api/v1/bookmarks', bookmarkRoutes);
 app.use('/api/v1/category', CategoryRouter);
 // Order processing endpoints
 app.use('/api/v1/orders', orderRoutes);
-app.use('/search', SearchRouter); // Add this line to register the search route
+app.use('/api/search', SearchRouter); // Add this line to register the search route
 
 // Support routes
 app.use('/support', SupportRouter);
