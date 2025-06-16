@@ -261,10 +261,10 @@ Project Link: [https://github.com/viraj-gavade/thriftify](https://github.com/vir
 Here are some screenshots of the Thriftify application:
 
 ### Homepage
-![Homepage](./screenshots/homepage.png)
+![Homepage](./Backend/screenshots/homepage.png)
 
 ### Product Listing
-![Product Listing](./screenshots/product-listing.png)
+![Product Listing](./Backend/screenshots/product-listing.png)
 
 ### Payment Gateway
-![payment View](./screenshots/payment-view.png)
+![payment View](./Backend/screenshots/payment-view.png)
