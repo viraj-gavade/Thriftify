@@ -137,6 +137,18 @@ listingRouter.get('/search', async (req, res) => {
 listingRouter.get('/user/bookmarks', verifyJWT, GetUserBookmarks);
 
 /**
+ * Get all listings created by the authenticated user
+ * GET /user/listings
+ */
+listingRouter.get('/user/listings', verifyJWT, GetUserListings);
+
+/**
+ * Get a specific listing created by the authenticated user
+ * GET /user/listings/:id
+ */
+listingRouter.get('/user/listings/:id', verifyJWT, GetUserListingById);
+
+/**
  * Get a single listing by ID
  * GET /:id
  */
@@ -153,18 +165,6 @@ listingRouter.patch('/:id', verifyJWT, upload.array('images', 5), UpdateListing)
  * DELETE /:id
  */
 listingRouter.delete('/:id', verifyJWT, DeleteListing);
-
-/**
- * Get all listings created by the authenticated user
- * GET /user/listings
- */
-listingRouter.get('/user/listings', verifyJWT, GetUserListings);
-
-/**
- * Get a specific listing created by the authenticated user
- * GET /user/listings/:id
- */
-listingRouter.get('/user/listings/:id', verifyJWT, GetUserListingById);
 
 /**
  * Add a listing to user's bookmarks

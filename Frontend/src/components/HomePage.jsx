@@ -1,518 +1,226 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-// eslint-disable-next-line no-unused-vars
-import { motion } from 'framer-motion';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
-import { FaSearch, FaPlus, FaBookmark, FaRegBookmark, FaShoppingCart, 
-         FaUserCircle, FaTag, FaMapMarkerAlt, FaFilter, FaTimes } from 'react-icons/fa';
-import { HiMenu, HiX } from 'react-icons/hi';
+import { toast } from 'react-toastify';
+import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Search, Bookmark, BookmarkCheck, MapPin, Tag,
+  ArrowRight, SlidersHorizontal, Leaf, Heart,
+  Recycle, ShoppingBag,
+} from 'lucide-react';
 
+const CATEGORIES = ['electronics', 'furniture', 'clothing', 'books', 'others'];
+const CATEGORY_ICONS = { electronics: '⚡', furniture: '🪑', clothing: '👕', books: '📚', others: '📦' };
 
 const HomePage = () => {
-  // State variables
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userBookmarks, setUserBookmarks] = useState([]);
-  const [categories] = useState([
-    'electronics', 'furniture', 'clothing', 'books', 'others'
-  ]);
-  const [showAddListingModal, setShowAddListingModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
-    category: '',
-    location: '',
-    sortBy: 'desc' // Default: newest first
-  });
-  
-  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({ category: '', sortBy: 'newest' });
 
-  // Check if user is authenticated
+  // Re-fetch whenever filters or committed search term change
   useEffect(() => {
-    const checkAuth = async () => {
+    const fetchListings = async () => {
+      setLoading(true);
       try {
-        const response = await axios.get('/api/v1/user/check-auth', { withCredentials: true });
-        setIsAuthenticated(response.status === 200);
-      } catch (error) {
-        console.log(error);
-        setIsAuthenticated(false);
-        console.log('User not authenticated');
-      }
+        const params = new URLSearchParams();
+        params.set('sortBy', filters.sortBy);
+        if (filters.category) params.set('category', filters.category);
+        if (searchTerm.trim()) params.set('query', searchTerm);
+        const { data } = await axios.get(`/api/v1/listings/sorted?${params}`);
+        setListings(Array.isArray(data.data) ? data.data : []);
+      } catch (err) { toast.error(err.response?.data?.message || 'Failed to load listings'); setListings([]); }
+      finally { setLoading(false); }
     };
-    
-    checkAuth();
-  }, []);
+    fetchListings();
+  }, [filters, searchTerm]);
 
-  // Fetch listings when component mounts or filters change
   useEffect(() => {
-    // Remove the automatic fetch on filter change
-    // Only fetch on initial load
-    if (loading && listings.length === 0) {
-      fetchListings();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Fetch user's bookmarks if authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchUserBookmarks();
-    } else {
-      // Ensure userBookmarks is always an array
-      setUserBookmarks([]);
-    }
+    if (isAuthenticated) fetchUserBookmarks();
+    else setUserBookmarks([]);
   }, [isAuthenticated]);
 
-  // Fetch listings from API
-  const fetchListings = async () => {
-    setLoading(true);
-    try {
-      let queryString = `sortOrder=${filters.sortBy}`;
-      if (filters.category) queryString += `&category=${encodeURIComponent(filters.category)}`;
-      if (filters.location) queryString += `&location=${encodeURIComponent(filters.location)}`;
-      if (searchQuery) queryString += `&query=${encodeURIComponent(searchQuery)}`;
-      
-      const response = await axios.get(`/api/v1/listings/sorted?${queryString}`);
-      console.log('Fetched listings:', response.data);
-      
-      // The API returns listings in the "message" field based on console output
-      const listingsData = response.data.message || [];
-      setListings(Array.isArray(listingsData) ? listingsData : []);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching listings:', error);
-      toast.error('Failed to load listings. Please try again later.');
-      setListings([]);
-      setLoading(false);
-    }
-  };
-
-  const fetchSearchedListings = async () => {
-    setLoading(true);
-    try {
-      let queryString = `?sortOrder=${filters.sortBy}`;
-      if (filters.category) queryString += `&category=${encodeURIComponent(filters.category)}`;
-      if (filters.location) queryString += `&location=${encodeURIComponent(filters.location)}`;
-      if (searchQuery) queryString += `&query=${encodeURIComponent(searchQuery)}`;
-
-      const response = await axios.get(`/api/search${queryString}`);
-      console.log('Fetched listings:', response.data);
-
-      const listingsData = response.data.message.listings || [];
-      setListings(Array.isArray(listingsData) ? listingsData : []);
-    } catch (error) {
-      console.error('Error fetching listings:', error);
-      toast.error('Failed to load listings. Please try again later.');
-      setListings([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch user's bookmarks
   const fetchUserBookmarks = async () => {
-    try {
-      const response = await axios.get('/api/v1/user/bookmarks', { withCredentials: true });
-      setUserBookmarks(response.data || []);
-    } catch (error) {
-      console.error('Error fetching bookmarks:', error);
-      setUserBookmarks([]);
-    }
+    try { const r = await axios.get('/api/v1/user/bookmarks', { withCredentials: true }); setUserBookmarks(r.data || []); }
+    catch { /* bookmarks are optional — don't toast */ setUserBookmarks([]); }
   };
 
-  // Toggle mobile menu
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
+  const handleSearch = (e) => { e.preventDefault(); setSearchTerm(searchQuery); };
 
-  // Apply filters - now this is the only way to trigger a search after changing filters
-  const applyFilters = () => {
-    fetchListings();
-  };
-  
-  // Handle search
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchSearchedListings();
-  };
-  
-  // Handle bookmark toggle
-  const handleBookmarkToggle = async (listingId) => {
-    if (!isAuthenticated) {
-      toast.info('Please log in to bookmark items');
-      navigate('/login');
-      return;
-    }
-    
+  const isBookmarkedItem = (id) =>
+    Array.isArray(userBookmarks) &&
+    userBookmarks.some(b => b?.listingId === id || b?._id === id || b?.listing?._id === id);
+
+  const toggleBookmark = async (listingId) => {
+    if (!isAuthenticated) { toast.info('Sign in to save items'); navigate('/login'); return; }
     try {
-      const response = await axios.post(`/api/v1/bookmarks/toggle/${listingId}`, {
-        listingId
-      }, { withCredentials: true });
-      
-      // Refresh bookmarks after toggle
+      const res = await axios.post(`/api/v1/bookmarks/toggle/${listingId}`, { listingId }, { withCredentials: true });
       fetchUserBookmarks();
-
-      console.log('response', response.data.message.isBookmarked);
-      
-      // Show success toast
-      const message = response?.data?.message;
-      const action = message.isBookmarked ? 'added to' : 'removed from';
-
-      toast.success(`Item ${action} bookmarks!`);
-    } catch (error) {
-      console.error('Error toggling bookmark:', error);
-      toast.error('Failed to update bookmark. Please try again.');
-    }
+      const d = res.data.data || res.data;
+      toast.success(d.isBookmarked ? 'Saved to bookmarks' : 'Removed from bookmarks');
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to update bookmark'); }
   };
 
   return (
     <div>
-      {/* Header with Navigation */}
-      <header className="bg-[#2c3e50] text-white sticky top-0 z-50 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center">
-                <span className="text-2xl font-bold mr-2">Thriftify</span>
-                <span className="text-[#3498db]">
-                  <FaTag className="h-5 w-5" />
-                </span>
-              </Link>
-            </div>
-            
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex space-x-6">
-              <Link to="/" className="text-white hover:bg-opacity-20 hover:bg-white px-3 py-2 rounded-md text-sm font-medium transition duration-300">
-                Home
-              </Link>
-              <Link to="/categories" className="text-white hover:bg-opacity-20 hover:bg-white px-3 py-2 rounded-md text-sm font-medium transition duration-300">
-                Categories
-              </Link>
-              <Link to="/listings/new" className="text-white hover:bg-opacity-20 hover:bg-white px-3 py-2 rounded-md text-sm font-medium transition duration-300">
-                Sell Item
-              </Link>
-              {isAuthenticated ? (
-                <>
-                  <Link to="/bookmarks" className="text-white hover:bg-opacity-20 hover:bg-white px-3 py-2 rounded-md text-sm font-medium transition duration-300">
-                    Bookmarks
-                  </Link>
-                  <Link to="/profile" className="text-white hover:bg-opacity-20 hover:bg-white px-3 py-2 rounded-md text-sm font-medium transition duration-300">
-                    Profile
-                  </Link>
-                  <Link to="/logout" className="text-white hover:bg-opacity-20 hover:bg-white px-3 py-2 rounded-md text-sm font-medium transition duration-300">
-                    Logout
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link to="/login" className="text-white hover:bg-opacity-20 hover:bg-white px-3 py-2 rounded-md text-sm font-medium transition duration-300">
-                    Login
-                  </Link>
-                  <Link to="/signup" className="bg-[#3498db] hover:bg-[#2980b9] text-white px-4 py-2 rounded-md text-sm font-medium transition duration-300">
-                    Sign Up
-                  </Link>
-                </>
-              )}
-            </nav>
-            
-            {/* Mobile menu button */}
-            <div className="md:hidden">
-              <button
-                onClick={toggleMobileMenu}
-                className="text-white focus:outline-none"
-              >
-                {mobileMenuOpen ? (
-                  <HiX className="h-6 w-6" />
-                ) : (
-                  <HiMenu className="h-6 w-6" />
-                )}
-              </button>
-            </div>
-          </div>
+      {/* Hero */}
+      <section className="relative bg-foreground overflow-hidden">
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-10 left-10 w-72 h-72 rounded-full bg-primary blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-96 h-96 rounded-full bg-accent blur-3xl" />
         </div>
-      </header>
-      
-      {/* Mobile menu dropdown */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-[#2c3e50] text-white">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link to="/" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-opacity-20 hover:bg-white transition duration-300">
-              Home
-            </Link>
-            <Link to="/categories" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-opacity-20 hover:bg-white transition duration-300">
-              Categories
-            </Link>
-            <Link to="/listings/new" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-opacity-20 hover:bg-white transition duration-300">
-              Sell Item
-            </Link>
-            {isAuthenticated ? (
-              <>
-                <Link to="/bookmarks" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-opacity-20 hover:bg-white transition duration-300">
-                  Bookmarks
-                </Link>
-                <Link to="/profile" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-opacity-20 hover:bg-white transition duration-300">
-                  Profile
-                </Link>
-                <Link to="/logout" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-opacity-20 hover:bg-white transition duration-300">
-                  Logout
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-opacity-20 hover:bg-white transition duration-300">
-                  Login
-                </Link>
-                <Link to="/signup" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-opacity-20 hover:bg-white transition duration-300">
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-      
-      {/* Toast Container for notifications */}
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
-      
-      {/* Main Content */}
-      <main>
-        {/* Search and Filter Section */}
-        <section className="bg-gradient-to-r from-[#2c3e50] to-[#3498db] text-white py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-extrabold sm:text-5xl text-white">Find Amazing Deals</h1>
-              <p className="mt-4 text-xl">Discover pre-loved items at incredible prices</p>
-            </div>
-            
-            {/* Search Form */}
-            <form onSubmit={handleSearch} className="max-w-3xl mx-auto flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search for items..."
-                  className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
-                />
-                <FaSearch className="absolute right-3 top-3.5 text-gray-400" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+          <div className="text-center max-w-3xl mx-auto">
+            <Badge variant="accent" className="mb-6 text-sm px-4 py-1.5">
+              <Leaf className="w-3.5 h-3.5 mr-1.5" /> Sustainable Shopping
+            </Badge>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold text-white tracking-tight leading-tight">
+              Pre-loved finds,<span className="text-primary-300"> new stories</span>
+            </h1>
+            <p className="mt-5 text-lg text-white/60 max-w-xl mx-auto leading-relaxed">
+              Discover unique second-hand treasures at incredible prices.
+            </p>
+            <form onSubmit={handleSearch} className="mt-10 flex gap-3 max-w-2xl mx-auto">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search for items..." className="pl-10 h-12 bg-white border-0 shadow-elevated" />
               </div>
-              <div className="sm:w-1/4">
-                <select
-                  value={filters.category}
-                  onChange={(e) => setFilters({...filters, category: e.target.value})}
-                  className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
-                >
-                  <option value="">All Categories</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button 
-                type="submit"
-                className="bg-[#e74c3c] hover:bg-[#c0392b] text-white font-bold py-3 px-6 rounded-lg transition duration-300"
-              >
-                Search
-              </button>
-            </form>
-            
-            {/* Filter options */}
-            <div className="mt-6 flex flex-wrap justify-center gap-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={filters.location}
-                  onChange={(e) => setFilters({...filters, location: e.target.value})}
-                  placeholder="Enter location..."
-                  className="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
-                />
-                <FaMapMarkerAlt className="absolute right-3 top-2.5 text-gray-400" />
-              </div>
-              
-              <select
-                value={filters.sortBy}
-                onChange={(e) => setFilters({...filters, sortBy: e.target.value})}
-                className="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
-              >
-                <option value="desc">Newest First</option>
-                <option value="asc">Oldest First</option>
-                <option value="price_low">Price: Low to High</option>
-                <option value="price_high">Price: High to Low</option>
+              <select value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                className="hidden sm:block h-12 rounded-md border-0 bg-white shadow-elevated px-4 text-sm text-foreground focus:ring-2 focus:ring-primary/20">
+                <option value="">All Categories</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
               </select>
-              
-              <button
-                onClick={applyFilters}
-                className="flex items-center gap-2 bg-white text-[#3498db] px-4 py-2 rounded-lg hover:bg-gray-100 transition duration-300"
-              >
-                <FaFilter /> Apply Filters
-              </button>
-            </div>
+              <Button type="submit" size="lg" className="h-12 shadow-elevated">Search</Button>
+            </form>
           </div>
-        </section>
-
-        {/* Listings Section */}
-        <section className="py-12 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-800">Featured Listings</h2>
-            </div>
-
-            {loading ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3498db]"></div>
+          <div className="mt-16 grid grid-cols-3 gap-4 max-w-lg mx-auto">
+            {[{ icon: Heart, label: 'Items Listed', val: `${listings.length}+` },
+              { icon: Recycle, label: 'Eco Friendly', val: '100%' },
+              { icon: ShoppingBag, label: 'Categories', val: '5+' }
+            ].map(({ icon: I, label, val }) => (
+              <div key={label} className="text-center">
+                <I className="w-5 h-5 mx-auto text-primary-300 mb-1" />
+                <p className="text-xl font-bold text-white">{val}</p>
+                <p className="text-xs text-white/40">{label}</p>
               </div>
-            ) : listings.length > 0 ? (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-              >
-                {listings.map((listing) => (
-                  <motion.div 
-                    key={listing._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    whileHover={{ y: -5 }}
-                    className="bg-white rounded-lg shadow-md overflow-hidden"
-                  >
-                    <div className="relative h-48 overflow-hidden">
-                      <img 
-                        src={listing.images && listing.images.length ? listing.images[0] : 'https://via.placeholder.com/400x300?text=No+Image'} 
-                        alt={listing.title || 'Product'} 
-                        className="w-full h-full object-cover transition duration-300 hover:scale-105"
-                      />
-                      <div className="absolute top-2 right-2">
-                        <button
-                          onClick={() => handleBookmarkToggle(listing._id)}
-                          className="bg-white p-2 rounded-full shadow-md transition duration-300 transform hover:scale-110"
-                        >
-                          {Array.isArray(userBookmarks) && userBookmarks.some(bookmark => 
-                            bookmark?.listingId === listing._id || 
-                            bookmark?._id === listing._id || 
-                            (bookmark?.listing && bookmark?.listing._id === listing._id)
-                          ) ? (
-                            <FaBookmark className="text-[#e74c3c]" />
-                          ) : (
-                            <FaRegBookmark className="text-gray-600" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <Link to={`/listings/${listing._id}`}>
-                        <h3 className="text-lg font-medium text-gray-800 hover:text-[#3498db] transition duration-300 line-clamp-1">
-                          {listing.title || 'No Title'}
-                        </h3>
-                      </Link>
-                      <div className="text-[#27ae60] text-xl font-bold mt-2">₹{listing.price || 'N/A'}</div>
-                      <p className="text-gray-600 text-sm mt-2 mb-3 line-clamp-2">{listing.description || 'No Description'}</p>
-                      <div className="flex justify-between items-center text-xs text-gray-500 mt-3">
-                        <span className="flex items-center">
-                          <FaTag className="mr-1" /> {listing.category || 'N/A'}
-                        </span>
-                        <span className="flex items-center">
-                          <FaMapMarkerAlt className="mr-1" /> {listing.location || 'N/A'}
-                        </span>
-                      </div>
-                      <div className="flex items-center mt-3 text-xs text-gray-500">
-                        <FaUserCircle className="mr-1 text-[#3498db]" /> 
-                        <span>{listing.postedBy?.fullname || 'Unknown'}</span>
-                      </div>
-                      <div className="flex gap-2 mt-4">
-                        <Link 
-                          to={`/listings/${listing._id}`}
-                          className="flex-1 bg-[#27ae60] hover:bg-[#219653] text-white text-center py-2 rounded transition duration-300"
-                        >
-                          <FaShoppingCart className="inline mr-1" /> Buy Now
-                        </Link>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-12"
-              >
-                <div className="text-5xl text-gray-300 mb-4">
-                  <FaSearch className="mx-auto" />
-                </div>
-                <p className="text-xl text-gray-500">No listings found. Try adjusting your search criteria.</p>
-              </motion.div>
-            )}
+            ))}
           </div>
-        </section>
-        
-        {/* Categories Section */}
-        <section className="py-12 bg-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">Popular Categories</h2>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              {/* Category Cards */}
-              {['Electronics', 'Clothing', 'Home Decor', 'Books', 'Sports', 'Collectibles'].map((category) => (
-                <div key={category} className="bg-white rounded-lg shadow-sm p-4 text-center cursor-pointer hover:shadow-md transition duration-300">
-                  <div className="h-16 flex items-center justify-center text-primary-600">
-                    <i className="fas fa-tag text-3xl"></i>
-                  </div>
-                  <h3 className="text-gray-800 font-medium mt-2">{category}</h3>
-                </div>
+        </div>
+      </section>
+
+      {/* Filter bar */}
+      <section className="sticky top-16 z-40 bg-white border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3 overflow-x-auto">
+          <SlidersHorizontal className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <button onClick={() => setFilters(f => ({ ...f, category: '' }))}
+            className={cn('px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
+              !filters.category ? 'bg-primary text-white' : 'bg-secondary text-secondary-foreground hover:bg-border')}>All</button>
+          {CATEGORIES.map(c => (
+            <button key={c} onClick={() => setFilters(f => ({ ...f, category: c }))}
+              className={cn('px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
+                filters.category === c ? 'bg-primary text-white' : 'bg-secondary text-secondary-foreground hover:bg-border')}>
+              {CATEGORY_ICONS[c]} {c.charAt(0).toUpperCase() + c.slice(1)}
+            </button>
+          ))}
+          <div className="ml-auto flex-shrink-0">
+            <select value={filters.sortBy} onChange={(e) => setFilters(f => ({ ...f, sortBy: e.target.value }))}
+              className="text-xs bg-transparent border-0 text-muted-foreground focus:ring-0 pr-6 cursor-pointer">
+              <option value="newest">Newest</option><option value="oldest">Oldest</option>
+              <option value="price_low">Price ↑</option><option value="price_high">Price ↓</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      {/* Listings Grid */}
+      <section className="py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-display font-bold text-foreground">
+                {filters.category ? filters.category.charAt(0).toUpperCase() + filters.category.slice(1) : 'All Listings'}
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">{loading ? 'Loading...' : `${listings.length} items found`}</p>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <Card key={i} className="overflow-hidden"><Skeleton className="h-52 w-full rounded-none" />
+                  <div className="p-4 space-y-3"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-6 w-1/3" /><Skeleton className="h-3 w-full" /></div></Card>
               ))}
             </div>
-          </div>
-        </section>
-      </main>
-      
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8">
+          ) : listings.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {listings.map(listing => (
+                <Card key={listing._id} className="group overflow-hidden hover:shadow-card-hover transition-all duration-300">
+                  <div className="relative h-52 overflow-hidden bg-muted">
+                    <img src={listing.images?.[0] || 'https://via.placeholder.com/400x300?text=No+Image'} alt={listing.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <button onClick={(e) => { e.preventDefault(); toggleBookmark(listing._id); }}
+                      className="absolute top-3 right-3 p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-soft hover:bg-white transition-all">
+                      {isBookmarkedItem(listing._id) ? <BookmarkCheck className="w-4 h-4 text-primary" /> : <Bookmark className="w-4 h-4 text-muted-foreground" />}
+                    </button>
+                    {listing.isSold && <div className="absolute top-3 left-3"><Badge variant="destructive" className="text-[10px]">SOLD</Badge></div>}
+                  </div>
+                  <div className="p-4">
+                    <Link to={`/listings/${listing._id}`}>
+                      <h3 className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1 text-sm">{listing.title || 'Untitled'}</h3>
+                    </Link>
+                    <p className="text-xl font-bold text-primary mt-1.5">₹{listing.price?.toLocaleString() || '0'}</p>
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2 leading-relaxed">{listing.description || 'No description'}</p>
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Tag className="w-3 h-3" />{listing.category || 'Other'}</span>
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="w-3 h-3" />{listing.location || 'N/A'}</span>
+                    </div>
+                    <Link to={`/listings/${listing._id}`} className="mt-4 block">
+                      <Button variant="outline" size="sm" className="w-full group/btn">View Details <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform group-hover/btn:translate-x-0.5" /></Button>
+                    </Link>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4"><Search className="w-7 h-7 text-muted-foreground" /></div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">No listings found</h3>
+              <p className="text-sm text-muted-foreground">Try adjusting your search or filters.</p>
+              <Button variant="outline" className="mt-6" onClick={() => { setFilters({ category: '', sortBy: 'newest' }); setSearchQuery(''); setSearchTerm(''); }}>Clear Filters</Button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Categories */}
+      <section className="py-14 bg-secondary/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">About Thriftify</h3>
-              <p className="text-gray-300">Thriftify is a platform for buying and selling pre-loved items, helping reduce waste and give items a second life.</p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-              <ul className="space-y-2">
-                <li><Link to="/about" className="text-gray-300 hover:text-white">About Us</Link></li>
-                <li><Link to="/contact" className="text-gray-300 hover:text-white">Contact</Link></li>
-                <li><Link to="/terms" className="text-gray-300 hover:text-white">Terms of Service</Link></li>
-                <li><Link to="/privacy" className="text-gray-300 hover:text-white">Privacy Policy</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Connect With Us</h3>
-              <div className="flex space-x-4">
-                <a href="#" className="text-gray-300 hover:text-white text-xl"><i className="fab fa-facebook"></i></a>
-                <a href="#" className="text-gray-300 hover:text-white text-xl"><i className="fab fa-twitter"></i></a>
-                <a href="#" className="text-gray-300 hover:text-white text-xl"><i className="fab fa-instagram"></i></a>
-                <a href="#" className="text-gray-300 hover:text-white text-xl"><i className="fab fa-linkedin"></i></a>
-              </div>
-              <p className="mt-4 text-gray-300">© 2025 Thriftify. All rights reserved.</p>
-            </div>
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-display font-bold text-foreground">Browse Categories</h2>
+            <p className="text-sm text-muted-foreground mt-2">Find exactly what you're looking for</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {CATEGORIES.map(c => (
+              <button key={c} onClick={() => setFilters(f => ({ ...f, category: c }))}
+                className="group bg-white rounded-xl p-6 text-center shadow-soft hover:shadow-card-hover transition-all duration-300 border border-border hover:border-primary/20">
+                <div className="text-3xl mb-3">{CATEGORY_ICONS[c]}</div>
+                <h3 className="font-medium text-foreground text-sm group-hover:text-primary transition-colors">{c.charAt(0).toUpperCase() + c.slice(1)}</h3>
+              </button>
+            ))}
           </div>
         </div>
-      </footer>
+      </section>
     </div>
   );
 };

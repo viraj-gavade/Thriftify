@@ -1,5 +1,6 @@
 const express = require('express');
-const http = require('http'); // For Socket.IO
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
@@ -9,25 +10,13 @@ const Listing = require('./Schemas/listings.schemas');
 
 // Routers
 const UserRouter = require('./Routes/user.router');
-/**
- * Listing router - Handles all listing/product related API endpoints
- */
 const ListingRouter = require('./Routes/listing.router');
- 
-/**
- * Async handler utility - Wraps async route handlers for error handling
- */
 const asyncHandler = require('./utils/asynchandler');
-/**
- * Bookmark routes - Manages user bookmark functionality
- */
 const bookmarkRoutes = require('./Routes/bookmark.router');
-/**
- * Order routes - Handles payment and order processing
- */
 const orderRoutes = require('./Routes/orders.router');
 const CategoryRouter = require('./Routes/category.router');
-const SearchRouter = require('./Routes/search.router'); // Add this line
+const SearchRouter = require('./Routes/search.router');
+const ChatRouter = require('./Routes/chat.router');
 
 // Import Swagger packages and our swagger spec
 const swaggerUi = require('swagger-ui-express');
@@ -36,22 +25,78 @@ const SupportRouter = require('./Routes/support.router');
 const verifyJWT = require('./Middlewares/authentication.middleware');
 
 // Initialize app and server
-/**
- * Initialize Express application
- */
 const app = express();
+const server = http.createServer(app);
 
-/**
- * Create HTTP server for Express application
- * This allows the Express app to handle HTTP requests
- */
-const server = http.createServer(app); // Create HTTP server for Express
+// Socket.IO setup
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true,
+  },
+});
+
+// Make io accessible to controllers
+app.set('io', io);
+
+// Socket.IO authentication & room management
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.headers?.cookie
+    ?.split(';')
+    ?.find((c) => c.trim().startsWith('accessToken='))
+    ?.split('=')[1];
+  if (!token) return next(new Error('Authentication required'));
+  try {
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
+    socket.userId = decoded._id;
+    next();
+  } catch {
+    next(new Error('Invalid token'));
+  }
+});
+
+io.on('connection', (socket) => {
+  // Join personal room for private messages
+  socket.join(`user:${socket.userId}`);
+
+  // Join a conversation room
+  socket.on('joinConversation', (conversationId) => {
+    socket.join(`conversation:${conversationId}`);
+  });
+
+  // Leave a conversation room
+  socket.on('leaveConversation', (conversationId) => {
+    socket.leave(`conversation:${conversationId}`);
+  });
+
+  // Typing indicator
+  socket.on('typing', ({ conversationId }) => {
+    socket.to(`conversation:${conversationId}`).emit('userTyping', {
+      userId: socket.userId,
+      conversationId,
+    });
+  });
+
+  socket.on('stopTyping', ({ conversationId }) => {
+    socket.to(`conversation:${conversationId}`).emit('userStopTyping', {
+      userId: socket.userId,
+      conversationId,
+    });
+  });
+
+  socket.on('disconnect', () => {
+    // disconnected
+  });
+});
 
 // Setup Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+}));
 
 // Set view engine
 app.set('view engine', 'ejs');
@@ -66,7 +111,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 
 // Authentication middleware to pass user data to templates
 app.use((req, res, next) => {
-  const token = req.cookies.token;
+  const token = req.cookies.accessToken;
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRETE);
@@ -74,7 +119,6 @@ app.use((req, res, next) => {
       res.locals.user = decoded; // Make user available to all templates
     } catch (error) {
       res.locals.user = null;
-      console.error('Token verification failed:', error.message);
     }
   } else {
     res.locals.user = null;
@@ -224,7 +268,8 @@ app.use('/api/v1/bookmarks', bookmarkRoutes);
 app.use('/api/v1/category', CategoryRouter);
 // Order processing endpoints
 app.use('/api/v1/orders', orderRoutes);
-app.use('/api/search', SearchRouter); // Add this line to register the search route
+app.use('/api/search', SearchRouter);
+app.use('/api/v1/chat', ChatRouter);
 
 // Support routes
 app.use('/support', SupportRouter);
@@ -347,3 +392,15 @@ const ConnectDB = async () => {
 };
 
 ConnectDB();
+
+// Global error handling middleware (must be after all routes)
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+  return res.status(statusCode).json({
+    success: false,
+    message,
+    errors: err.errors || [],
+  });
+});

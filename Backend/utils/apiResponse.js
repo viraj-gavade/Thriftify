@@ -10,16 +10,14 @@ class ApiResponse {
   /**
    * Constructs a standardized API response
    * 
-   * @param {number} statusCode - HTTP status code
    * @param {string} message - Response message
    * @param {any} data - Response payload data
-   * @param {boolean|null} successOverride - Optional success flag override
+   * @param {boolean} success - Success flag (default: true)
    */
-  constructor(statusCode, message = 'success', data = null, successOverride = null) {
-    this.statusCode = statusCode;
+  constructor(message = 'success', data = null, success = true) {
+    this.success = success;
     this.message = message;
     this.data = data;
-    this.success = successOverride !== null ? successOverride : statusCode < 400;
   }
 }
 

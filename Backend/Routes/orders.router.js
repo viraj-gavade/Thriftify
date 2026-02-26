@@ -28,25 +28,11 @@ const verifyJWT = require('../Middlewares/authentication.middleware');
 router.post('/create', verifyJWT, CreateOrder);
 
 /**
- * Get a specific order by ID
- * GET /:id
- * Requires authentication
- */
-router.get('/:id', verifyJWT, GetOrder);
-
-/**
  * Get all orders for the authenticated user
  * GET /
  * Requires authentication
  */
 router.get('/', verifyJWT, GetUserOrders);
-
-/**
- * Delete a user's order by ID
- * DELETE /delete/:orderId
- * Requires authentication
- */
-router.delete('/delete/:orderId', verifyJWT, DeleteUserOrder);
 
 /**
  * Capture payment for an order
@@ -58,9 +44,22 @@ router.get('/payment/capture', capturePayment);
 /**
  * View order details page
  * GET /view/:id
- * Renders order details for web interface
  * Requires authentication
  */
 router.get('/view/:id', verifyJWT, ViewOrderDetails);
+
+/**
+ * Delete a user's order by ID
+ * DELETE /delete/:orderId
+ * Requires authentication
+ */
+router.delete('/delete/:orderId', verifyJWT, DeleteUserOrder);
+
+/**
+ * Get a specific order by ID
+ * GET /:id
+ * Requires authentication
+ */
+router.get('/:id', verifyJWT, GetOrder);
 
 module.exports = router;

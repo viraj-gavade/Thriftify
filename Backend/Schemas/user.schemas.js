@@ -74,13 +74,9 @@ const UserSchema = new mongoose.Schema({
             ref: 'Order',
         },
     ],
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now,
+    refreshToken: {
+        type: String,
+        default: null,
     },
 }, { timestamps: true });
 

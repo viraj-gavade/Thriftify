@@ -12,7 +12,7 @@ const CreateListing = asyncHandler(async (req, res) => {
         const { title, description, price, category, location } = req.body;
         const userId = req.user._id;
 
-        const existingListing = await Listing.findOne({ title, user: userId });
+        const existingListing = await Listing.findOne({ title, postedBy: userId });
         if (existingListing) {
             throw new CustomApiError(400, 'Listing already exists');
         }
@@ -44,32 +44,56 @@ const CreateListing = asyncHandler(async (req, res) => {
 
         return res.status(201).json(new ApiResponse('Listing created successfully', newListing));
     } catch (error) {
-        console.log(error);
         throw new CustomApiError(500, 'Server error while creating listing');
     }
 });
 
 const GetAllListings = asyncHandler(async (req, res) => {
     try {
-        const sortBy = req.query.sortBy || 'createdAt';
         const category = req.query.category;
         const location = req.query.location;
-        const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
-    
+        const searchQuery = req.query.query || req.query.q || '';
+        const sortBy = req.query.sortBy || req.query.sortOrder || 'newest';
+
         // Build query object dynamically
-        const query = {};
-        if (category) query.category = category;
-        if (location) query.location = location;
-    
+        const filter = { isSold: false };
+        if (category) filter.category = category.toLowerCase();
+        if (location) filter.location = location;
+        if (searchQuery && searchQuery.trim()) {
+            filter.$or = [
+                { title: { $regex: searchQuery, $options: 'i' } },
+                { description: { $regex: searchQuery, $options: 'i' } },
+            ];
+        }
+
+        // Determine sort options
+        let sortOptions = { createdAt: -1 };
+        switch (sortBy) {
+            case 'oldest':
+            case 'asc':
+                sortOptions = { createdAt: 1 };
+                break;
+            case 'price_low':
+            case 'price-asc':
+                sortOptions = { price: 1 };
+                break;
+            case 'price_high':
+            case 'price-desc':
+                sortOptions = { price: -1 };
+                break;
+            default: // 'newest', 'desc'
+                sortOptions = { createdAt: -1 };
+        }
+
         // Find and sort
-        const listings = await Listing.find(query)
+        const listings = await Listing.find(filter)
             .populate('postedBy', 'fullname email')
-            .sort({ [sortBy]: sortOrder });
-    
+            .sort(sortOptions);
+
         if (!listings.length) {
             return res.status(200).json(new ApiResponse('No listings found', []));
         }
-    
+
         return res.status(200).json(new ApiResponse('Listings fetched successfully', listings));
     } catch (error) {
         console.error('Error fetching listings:', error);

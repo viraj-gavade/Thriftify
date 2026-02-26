@@ -136,8 +136,6 @@ userRouter.route('/bookmarks').get(verifyJWT, asyncHandler(async (req, res) => {
         listingId: bookmark._id,
         title: bookmark.title,
     }));
-
-    console.log('Bookmarks:', bookmarks);   
     
     res.status(200).json(bookmarks);
 }));

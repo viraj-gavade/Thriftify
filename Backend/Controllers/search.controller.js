@@ -12,7 +12,6 @@ const ApiResponse = require('../utils/apiResponse');
  * Search listings by query string and optional filters
  */
 const searchListings = asyncHandler(async (req, res) => {
-    console.log('Search request received:', req.query);
     try {
         // Extract search parameters
         const query = req.query.query || '';
@@ -69,8 +68,6 @@ const searchListings = asyncHandler(async (req, res) => {
         
         // Execute search query to get total for pagination
         const total = await Listing.countDocuments(searchQuery);
-
-        console.log('searchQuery:', searchQuery);
         
         // Execute search query to get listings
         const listings = await Listing.find(searchQuery)
@@ -83,12 +80,13 @@ const searchListings = asyncHandler(async (req, res) => {
         let userBookmarks = [];
         if (req.user) {
             try {
-                const bookmarkRes = await fetch('/api/v1/user/bookmarks');
-                if (bookmarkRes.ok) {
-                    userBookmarks = await bookmarkRes.json();
+                const User = require('../Schemas/user.schemas');
+                const user = await User.findById(req.user._id).select('Bookmarks');
+                if (user && user.Bookmarks) {
+                    userBookmarks = user.Bookmarks.map(b => ({ listingId: b.toString() }));
                 }
             } catch (err) {
-                console.log('Error fetching bookmarks:', err);
+                // bookmarks lookup is non-critical
             }
         }
         

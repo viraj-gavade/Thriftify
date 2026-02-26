@@ -60,10 +60,8 @@ const CreateOrder = asyncHandler(async (req, res) => {
     if (!listing) throw new CustomApiError(404, "Listing not found");
     if (listing.isSold) throw new CustomApiError(409, "Listing already sold");
 
-    // Get the base URL with proper format (ensure it has http/https prefix)
-    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-    // Make sure baseUrl starts with http:// or https://
-    const formattedBaseUrl = baseUrl.startsWith('http') ? baseUrl : `http://${baseUrl}`;
+    // Use FRONTEND_URL for PayPal redirects (user's browser goes there after payment)
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const accessToken = await getPaypalAccessToken();
 
     const orderRes = await axios.post(
@@ -80,8 +78,8 @@ const CreateOrder = asyncHandler(async (req, res) => {
           },
         ],
         application_context: {
-          return_url: `${formattedBaseUrl}/success`,
-          cancel_url: `${formattedBaseUrl}/cancel`,
+          return_url: `${frontendUrl}/payment-success`,
+          cancel_url: `${frontendUrl}/payment-cancel`,
           brand_name: "Thriftify",
           user_action: "PAY_NOW",
           shipping_preference: "NO_SHIPPING",
@@ -110,7 +108,7 @@ const CreateOrder = asyncHandler(async (req, res) => {
         pincode,
       },
       paymentInfo: {
-        orderId: paypalOrderId,
+        id: paypalOrderId,
         status: "pending",
         amount: listing.price,
         currency: "USD",
@@ -155,25 +153,54 @@ const capturePayment = asyncHandler(async (req, res) => {
     try {
       const { token } = req.query; // we get ?token=... from PayPal redirect
       if (!token) throw new CustomApiError(400, "Missing PayPal token in query");
+
+      // If order is already captured, return it straight away (handles refresh / double-call)
+      const existingOrder = await Order.findOne({ paypalOrderId: token }).populate('listing');
+      if (existingOrder && existingOrder.isPaid) {
+        return res.status(200).json(
+          new ApiResponse("Payment already captured", {
+            order: existingOrder,
+            redirectUrl: '/payment-success'
+          })
+        );
+      }
     
       // Reuse the existing token function instead of duplicating code
       const accessToken = await getPaypalAccessToken();
     
       // Step 2: Capture the payment using the token
-      const captureRes = await axios.post(
-        `https://api-m.sandbox.paypal.com/v2/checkout/orders/${token}/capture`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
+      let captureData;
+      try {
+        const captureRes = await axios.post(
+          `https://api-m.sandbox.paypal.com/v2/checkout/orders/${token}/capture`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        captureData = captureRes.data;
+        if (captureRes.status !== 201 || captureData.status !== "COMPLETED") {
+          throw new CustomApiError(500, "Payment not completed");
         }
-      );
-    
-      const captureData = captureRes.data;  
-      if (captureRes.status !== 201 || captureData.status !== "COMPLETED") {
-        throw new CustomApiError(500, "Payment not completed");
+      } catch (captureErr) {
+        // 422 = ORDER_ALREADY_CAPTURED — treat as success
+        if (captureErr.response?.status === 422 && existingOrder) {
+          // Mark it paid if not already
+          existingOrder.isPaid = true;
+          existingOrder.orderStatus = 'confirmed';
+          existingOrder.paidAt = Date.now();
+          await existingOrder.save();
+          return res.status(200).json(
+            new ApiResponse("Payment already captured", {
+              order: existingOrder,
+              redirectUrl: '/payment-success'
+            })
+          );
+        }
+        throw captureErr;
       }
     
       // Step 3: Find and update your order in DB
@@ -181,7 +208,7 @@ const capturePayment = asyncHandler(async (req, res) => {
         { paypalOrderId: token },
         {
           paymentInfo: {
-            orderId: token,
+            id: token,
             status: "completed",
             amount: captureData.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value || "0",
             currency: captureData.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.currency_code || "USD",

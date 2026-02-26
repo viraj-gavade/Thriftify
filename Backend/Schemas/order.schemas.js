@@ -39,7 +39,7 @@ const OrderSchema = new mongoose.Schema(
         // Order status throughout fulfillment lifecycle
         orderStatus: {
             type: String,
-            enum: ['pending', "placed", "cancelled", "shipped", "delivered"],
+            enum: ['pending', "placed", "confirmed", "cancelled", "shipped", "delivered"],
             default: "placed"
         },
       
@@ -70,6 +70,9 @@ const OrderSchema = new mongoose.Schema(
 
         // Payment status flag
         isPaid: { type: Boolean, default: false },
+
+        // Timestamp when payment was completed
+        paidAt: { type: Date },
       
         // Order placement timestamp
         placedAt: { type: Date, default: Date.now }

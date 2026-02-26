@@ -76,10 +76,10 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // Check if the profile picture file was uploaded
-    const profilepicLocalpath = req.files?.profilepic[0]?.path
+    const profilepicLocalpath = req.files?.profilepic?.[0]?.path
     
-    if (profilepicLocalpath === undefined) {
-        throw new CustomApiError(404, 'Avatar must be uploaded!')
+    if (!profilepicLocalpath) {
+        throw new CustomApiError(400, 'Profile picture must be uploaded!')
     }
 
     // Upload avatar to Cloudinary
@@ -114,8 +114,12 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new CustomApiError(500, 'Server was unable to create the user please try again later!')
     }
 
-    // Redirect the user to the signup confirmation page
-    return res.status(201).redirect('/api/v1/user/login')
+    // Return JSON response for SPA frontend
+    return res.status(201).json({
+        success: true,
+        message: 'Account created successfully!',
+        user: createdUser
+    })
 })
 
 /**
@@ -161,16 +165,19 @@ const loginUser = asyncHandler(async (req, res) => {
     // Cookie options for secure and HTTP-only cookies
     const options = {
         httpOnly: true,
-        secure: true,          // Ensure cookies are only sent over HTTPS
-        sameSite: 'Lax'        // Allows cookies with top-level navigations and GET requests (safe for most use cases, including redirects)
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'Lax'
       };
-      
 
-    // Send the generated tokens in cookies and redirect to home page
+    // Send the generated tokens in cookies and JSON response
     return res.status(200)
         .cookie('accessToken', accessToken, options)
         .cookie('refreshToken', refreshToken, options)
-        .redirect('/');
+        .json({
+            success: true,
+            message: 'Login successful!',
+            user: loggedInUser
+        });
 })
 
 /**
@@ -197,16 +204,19 @@ const logoutUser = asyncHandler(async (req, res) => {
         // Set cookie options - must match the options used when setting cookies
         const options = {
             httpOnly: true,
-            secure: true,
-            sameSite: 'Strict',
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Lax',
             path: '/',
         };
         
-        // Clear cookies and redirect
+        // Clear cookies and return JSON response
         return res.status(200)
             .clearCookie('accessToken', options)
             .clearCookie('refreshToken', options)
-            .redirect('/');
+            .json({
+                success: true,
+                message: 'Logged out successfully'
+            });
     } catch (error) {
         throw new CustomApiError(500, 'Something went wrong during logout');
     }
@@ -336,10 +346,10 @@ const UpdateProfilePic = asyncHandler(async (req, res) => {
     }
     
     // Check if the profile picture file was uploaded
-    const profilepicLocalpath = req.files?.profilepic[0]?.path
+    const profilepicLocalpath = req.files?.profilepic?.[0]?.path
     
-    if (profilepicLocalpath === undefined) {
-        throw new CustomApiError(404, 'Profile picture must be uploaded!')
+    if (!profilepicLocalpath) {
+        throw new CustomApiError(400, 'Profile picture must be uploaded!')
     }
     
     // Upload avatar to Cloudinary
@@ -416,6 +426,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         })
 
     } catch (error) {
+        if (error instanceof CustomApiError) throw error;
         throw new CustomApiError(500, 'Something went wrong while changing the password please try again later!')
     }
 })

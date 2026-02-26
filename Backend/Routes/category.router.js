@@ -18,7 +18,6 @@ const Listing = require('../Schemas/listings.schemas');
  * GET /
  */
 categoryRouter.get('/', verifyJWT, (req, res) => {
-    console.log('Redirecting to others category');
     res.redirect('/api/v1/category/others');
 
 });
@@ -35,12 +34,10 @@ categoryRouter.get('/', verifyJWT, (req, res) => {
 categoryRouter.get('/:category', verifyJWT, async (req, res) => {
     try {
         const { category } = req.params;
-        console.log('Category requested:', category);
         const validCategories = ['electronics', 'furniture', 'clothing', 'books', 'others'];
         
         // Validate category
         if (!validCategories.includes(category)) {
-            console.log('Invalid category, redirecting to others');
             return res.redirect('/category/others'); // Redirect to others category
         }
         
@@ -69,16 +66,11 @@ categoryRouter.get('/:category', verifyJWT, async (req, res) => {
             sortOption = { price: -1 };
         }
         
-        console.log('Query:', JSON.stringify(query));
-        console.log('Sort options:', JSON.stringify(sortOption));
-        
         // Fetch listings from database - use the query object we built
         const listings = await Listing.find(query)
             .sort(sortOption)
             .populate('postedBy', 'username')
             .exec();
-        
-        console.log(`Fetched ${listings.length} listings for category: ${category}`);
         
         // Render the category page with listings
         res.render('category', {

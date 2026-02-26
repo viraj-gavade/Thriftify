@@ -30,9 +30,9 @@ const verifyJWT = asyncHandler(async (req, res, next) => {
         // Extract token from cookies or Authorization header with Bearer scheme
         const token = req.cookies?.accessToken || req.header('Authorization')?.replace('Bearer ', '');
     
-        // If no token exists, redirect to login page
+        // If no token exists, return 401 JSON response
         if (!token) {
-            return res.redirect('/api/v1/user/login');
+            return res.status(401).json({ success: false, message: 'Authentication required. Please log in.' });
         }
 
         // Verify token signature and decode its payload
@@ -41,9 +41,9 @@ const verifyJWT = asyncHandler(async (req, res, next) => {
         // Find the user associated with the token's ID, excluding sensitive fields
         const user = await User.findById(decodedToken._id).select('-password -refreshToken');
         
-        // If user no longer exists in the database, redirect to login
+        // If user no longer exists in the database, return 401
         if (!user) {
-            return res.redirect('/api/v1/user/login');
+            return res.status(401).json({ success: false, message: 'User not found. Please log in again.' });
         }
 
         // Attach the user object to the request for use in subsequent middleware/routes
@@ -54,7 +54,7 @@ const verifyJWT = asyncHandler(async (req, res, next) => {
         
     } catch (error) {
         // Handle token validation errors with appropriate error status and message
-        throw new CustomApiError(401, error?.message || 'Invalid access token');
+        return res.status(401).json({ success: false, message: error?.message || 'Invalid access token' });
     }
 });
 
