@@ -222,17 +222,65 @@ thriftify/
 
 ## 🚀 Deployment
 
-Thriftify is deployed on Render:
+Thriftify can be easily deployed on Render with both backend and frontend services.
 
-- **Production URL**: [https://thriftify.onrender.com](https://thriftify.onrender.com)
+### Quick Deploy to Render
 
-### Deployment Steps:
+**Option 1: Blueprint Deployment (Recommended)**
 
-1. Create a new Web Service on Render
-2. Connect your GitHub repository
-3. Add environment variables in the Render dashboard
-4. Set the build command to `npm install`
-5. Set the start command to `npm start`
+The easiest way to deploy the entire application at once:
+
+1. Push your code to GitHub
+2. Go to [Render Dashboard](https://dashboard.render.com/)
+3. Click "New +" → "Blueprint"
+4. Connect your repository (Render will auto-detect `render.yaml`)
+5. Configure environment variables
+6. Click "Apply"
+
+📖 **Step-by-step guide:** See [RENDER_DEPLOY.md](./RENDER_DEPLOY.md) for quick start
+
+✅ **Deployment checklist:** Use [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md) to ensure nothing is missed
+
+📚 **Detailed documentation:** See [DEPLOY.md](./DEPLOY.md) for comprehensive instructions
+
+### Required Services
+
+1. **MongoDB Atlas** (Database) - Free tier available
+2. **Cloudinary** (Image uploads) - Free tier available
+3. **Render** (Hosting) - Free tier available
+
+### Environment Variables Required
+
+**Backend:**
+- `MONGODB_URI` - MongoDB connection string
+- `JWT_SECRET` - JWT secret key (auto-generated)
+- `JWT_REFRESH_SECRET` - JWT refresh secret (auto-generated) 
+- `CLOUDINARY_CLOUD_NAME` - Cloudinary cloud name
+- `CLOUDINARY_API_KEY` - Cloudinary API key
+- `CLOUDINARY_API_SECRET` - Cloudinary API secret
+- `FRONTEND_URL` - Frontend URL (for CORS)
+
+**Frontend:**
+- `VITE_API_URL` - Backend API URL
+
+### Features Included in Deployment Config
+
+✅ Automatic builds and deployments  
+✅ Health checks configured  
+✅ CORS properly configured  
+✅ WebSocket support for real-time chat  
+✅ Static file serving for frontend  
+✅ Environment-based configuration  
+
+### Production URL
+
+- **Demo**: [https://thriftify.onrender.com](https://thriftify.onrender.com)
+
+### Free Tier Notes
+
+- Services sleep after 15 minutes of inactivity on free tier
+- First request after sleep takes 30-60 seconds to wake up
+- Consider upgrading to paid tier for production use
 
 ## 🔒 Authentication
 

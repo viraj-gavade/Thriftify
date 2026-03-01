@@ -1,0 +1,43 @@
+services:
+  # Backend API Service
+  - type: web
+    name: thriftify-backend
+    runtime: node
+    region: oregon
+    buildCommand: cd Backend && npm install
+    startCommand: cd Backend && node app.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://thriftify-frontend.onrender.com
+    healthCheckPath: /
+    
+  # Frontend Static Site
+  - type: web
+    name: thriftify-frontend
+    runtime: static
+    region: oregon
+    buildCommand: cd Frontend && npm install && npm run build
+    staticPublishPath: ./Frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://thriftify-backend.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
