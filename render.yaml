@@ -3,15 +3,16 @@ services:
   - type: web
     name: thriftify-backend
     runtime: node
+    plan: free
     region: oregon
-    rootDir: Backend
+    rootDir: ./Backend
     buildCommand: npm install
     startCommand: node app.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
+        value: 10000
       - key: MONGO_URI
         sync: false
       - key: DB_NAME
@@ -42,10 +43,11 @@ services:
   - type: web
     name: thriftify-frontend
     runtime: static
+    plan: free
     region: oregon
-    rootDir: Frontend
+    rootDir: ./Frontend
     buildCommand: npm install && npm run build
-    staticPublishPath: dist
+    staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
         value: https://thriftify-backend.onrender.com
