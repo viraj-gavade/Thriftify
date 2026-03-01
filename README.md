@@ -8,6 +8,12 @@ Thriftify is an online marketplace platform for buying and selling second-hand i
 
 [Live Demo](https://thriftify.onrender.com/)
 
+### Sandbox Credentials
+For testing and demo purposes, you can use the following sandbox credentials:
+
+- **Email:** sb-pzckc40679934@business.example.com
+- **Password:** hYM*t^i4
+
 ## ✨ Features
 
 - **User Authentication:** Secure registration and login system with JWT
