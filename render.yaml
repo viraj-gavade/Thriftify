@@ -4,27 +4,38 @@ services:
     name: thriftify-backend
     runtime: node
     region: oregon
-    buildCommand: cd Backend && npm install
-    startCommand: cd Backend && node app.js
+    rootDir: Backend
+    buildCommand: npm install
+    startCommand: node app.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 3000
-      - key: MONGODB_URI
+      - key: MONGO_URI
         sync: false
-      - key: JWT_SECRET
+      - key: DB_NAME
+        value: thriftify
+      - key: ACCESS_TOKEN_SECRETE
         generateValue: true
-      - key: JWT_REFRESH_SECRET
+      - key: ACCESS_TOKEN_EXPIRY
+        value: 1d
+      - key: REFRESH_TOKEN_SECRETE
         generateValue: true
+      - key: REFRESH_TOKEN_EXPIRY
+        value: 7d
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
-      - key: CLOUDINARY_API_SECRET
+      - key: CLOUDINARY_SECRETE_KEY
         sync: false
       - key: FRONTEND_URL
         value: https://thriftify-frontend.onrender.com
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
     healthCheckPath: /
     
   # Frontend Static Site
@@ -32,8 +43,9 @@ services:
     name: thriftify-frontend
     runtime: static
     region: oregon
-    buildCommand: cd Frontend && npm install && npm run build
-    staticPublishPath: ./Frontend/dist
+    rootDir: Frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
         value: https://thriftify-backend.onrender.com

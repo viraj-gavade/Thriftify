@@ -29,12 +29,17 @@ Use this checklist to ensure smooth deployment to Render.
   - [ ] Review detected services (should see backend + frontend)
 
 - [ ] Configure Backend Environment Variables
-  - [ ] MONGODB_URI (from Atlas)
+  - [ ] MONGO_URI (from Atlas - WITHOUT database name)
+  - [ ] DB_NAME (e.g., "thriftify")
   - [ ] CLOUDINARY_CLOUD_NAME
   - [ ] CLOUDINARY_API_KEY
-  - [ ] CLOUDINARY_API_SECRET
-  - [ ] JWT_SECRET (auto-generated)
-  - [ ] JWT_REFRESH_SECRET (auto-generated)
+  - [ ] CLOUDINARY_SECRETE_KEY (API Secret)
+  - [ ] PAYPAL_CLIENT_ID (optional)
+  - [ ] PAYPAL_CLIENT_SECRET (optional)
+  - [ ] ACCESS_TOKEN_SECRETE (auto-generated)
+  - [ ] REFRESH_TOKEN_SECRETE (auto-generated)
+  - [ ] ACCESS_TOKEN_EXPIRY (default: 1d)
+  - [ ] REFRESH_TOKEN_EXPIRY (default: 7d)
   - [ ] FRONTEND_URL (will update after frontend deploys)
 
 - [ ] Configure Frontend Environment Variables

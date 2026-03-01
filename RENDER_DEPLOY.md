@@ -27,10 +27,13 @@ This is the fastest way to deploy both services at once.
    During setup, you'll need to provide:
    
    **For Backend:**
-   - `MONGODB_URI` - Get from MongoDB Atlas
+   - `MONGO_URI` - Get from MongoDB Atlas (without database name)
+   - `DB_NAME` - Database name (e.g., "thriftify")
    - `CLOUDINARY_CLOUD_NAME` - Get from Cloudinary
    - `CLOUDINARY_API_KEY` - Get from Cloudinary  
-   - `CLOUDINARY_API_SECRET` - Get from Cloudinary
+   - `CLOUDINARY_SECRETE_KEY` - Get from Cloudinary (API Secret)
+   - `PAYPAL_CLIENT_ID` - Get from PayPal (optional)
+   - `PAYPAL_CLIENT_SECRET` - Get from PayPal (optional)
    
    (JWT secrets will be auto-generated)
 
@@ -54,7 +57,9 @@ This is the fastest way to deploy both services at once.
 3. Create Database Access user (username + password)
 4. Network Access: Add IP `0.0.0.0/0` (allow all)
 5. Connect → Get connection string
-6. Format: `mongodb+srv://username:password@cluster.xxx.mongodb.net/thriftify`
+6. Format: `mongodb+srv://username:password@cluster.xxx.mongodb.net`
+   - **Note**: Use the URI WITHOUT the database name at the end
+   - Set `DB_NAME=thriftify` as a separate environment variable
 
 ## Cloudinary Setup
 
