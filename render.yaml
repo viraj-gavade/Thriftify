@@ -5,9 +5,8 @@ services:
     runtime: node
     plan: free
     region: oregon
-    rootDir: ./Backend
-    buildCommand: npm install
-    startCommand: node app.js
+    buildCommand: cd Backend && npm install
+    startCommand: cd Backend && node app.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -45,9 +44,8 @@ services:
     runtime: static
     plan: free
     region: oregon
-    rootDir: ./Frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
+    buildCommand: cd Frontend && npm install && npm run build
+    staticPublishPath: Frontend/dist
     envVars:
       - key: VITE_API_URL
         value: https://thriftify-backend.onrender.com
